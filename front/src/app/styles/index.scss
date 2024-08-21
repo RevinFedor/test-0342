@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// custom modal overlay
+[data-rmiz-modal-overlay='hidden'] {
+    background-color: rgba(0, 0, 0, 0.7); /* Цвет фона при закрытом модальном окне */
+}
+
+[data-rmiz-modal-overlay='visible'] {
+    background-color: rgba(0, 0, 0, 0.7); /* Цвет фона при открытом модальном окне */
+}
+
+// scroll bar modal maual
+.modal_content {
+    /* Добавляем кастомные стили для полосы прокрутки */
+    overflow-y: auto;
+}
+
+/* Стили для полосы прокрутки */
+.modal_content::-webkit-scrollbar {
+    width: 8px; /* Ширина полосы прокрутки */
+}
+
+.modal_content::-webkit-scrollbar-track {
+    background: transparent; /* Цвет трека (фона) полосы прокрутки */
+    border-radius: 8px; /* Закругление трека */
+}
+
+.modal_content::-webkit-scrollbar-thumb {
+    background: #888; /* Цвет ползунка полосы прокрутки */
+    border-radius: 8px; /* Закругление ползунка */
+}
+
+.modal_content::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Цвет ползунка при наведении */
+}
+
+:root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: light dark;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    --note-yellow: 250 47 36;
+    --note-green: 142 78 60;
+    --note-orange: 24 58 98;
+    --note-pink: 331 74 78;
+    --note-gray: 220 14 62;
+    --note-blue: 217 91 65;
+}
+
+h1 {
+    font-size: 3.2em;
+    line-height: 1.1;
+}
+
+button {
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+}
+button:focus {
+    outline: none;
+}
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 224 71.4% 4.1%;
+        --card: 0 0% 100%;
+        --card-foreground: 224 71.4% 4.1%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 224 71.4% 4.1%;
+        --primary: 262.1 83.3% 57.8%;
+        --primary-foreground: 210 20% 98%;
+        --secondary: 220 14.3% 95.9%;
+        --secondary-foreground: 220.9 39.3% 11%;
+        --muted: 220 14.3% 95.9%;
+        --muted-foreground: 220 8.9% 46.1%;
+        --accent: 220 14.3% 95.9%;
+        --accent-foreground: 220.9 39.3% 11%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 20% 98%;
+        --border: 220 13% 91%;
+        --input: 220 13% 91%;
+        --ring: 262.1 83.3% 57.8%;
+        --radius: 0.5rem;
+        --chart-1: 12 76% 61%;
+        --chart-2: 173 58% 39%;
+        --chart-3: 197 37% 24%;
+        --chart-4: 43 74% 66%;
+        --chart-5: 27 87% 67%;
+    }
+
+    .dark {
+        --background: 224 71.4% 4.1%;
+        --foreground: 210 20% 98%;
+        --card: 224 71.4% 4.1%;
+        --card-foreground: 210 20% 98%;
+        --popover: 224 71.4% 4.1%;
+        --popover-foreground: 210 20% 98%;
+        --primary: 263.4 70% 50.4%;
+        --primary-foreground: 210 20% 98%;
+        --secondary: 215 27.9% 16.9%;
+        --secondary-foreground: 210 20% 98%;
+        --muted: 215 27.9% 16.9%;
+        --muted-foreground: 217.9 10.6% 64.9%;
+        --accent: 215 27.9% 16.9%;
+        --accent-foreground: 210 20% 98%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 210 20% 98%;
+        --border: 215 27.9% 16.9%;
+        --input: 215 27.9% 16.9%;
+        --ring: 263.4 70% 50.4%;
+        --chart-1: 220 70% 50%;
+        --chart-2: 160 60% 45%;
+        --chart-3: 30 80% 55%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+    }
+}
+
+.gridContainer > *:nth-child(4n) {
+    // margin-right: 10px;
+    // background-color: #020617;
+}
+
+//! reaaer itms
+.ebook-reader {
+    font-family: 'Georgia', serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+.column-wrapper {
+    display: flex;
+    gap: 2rem;
+}
+
+.column {
+    flex: 1;
+    text-align: justify;
+    hyphens: auto;
+}
+
+.column p {
+    text-indent: 1.5em;
+    margin-bottom: 1em;
+}
+
+.column img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1em auto;
+}
+
+/* Add styles for bold text, headings, etc. as needed */
+.column strong,
+.column b {
+    font-weight: bold;
+}
+
+.column h1,
+.column h2,
+.column h3,
+.column h4,
+.column h5,
+.column h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    line-height: 1.2;
+}
