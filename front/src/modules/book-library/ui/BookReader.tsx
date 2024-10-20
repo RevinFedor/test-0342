@@ -1,15 +1,12 @@
-//! финальная версия  + сделал вложенные заголовки
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import JSZip from 'jszip';
 import { useGetBookByIdQuery } from '../model/booksApiSlice';
-import { ScrollArea } from '@/shared/ui/components/ui/scroll-area';
-import { Button } from '@/shared/ui/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify'; // Для санитизации HTML
 import htmlReactParser from 'html-react-parser';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/components/ui/popover';
+import { ChaptersPopup } from './ChaptersPopup';
 
 interface Chapter {
     label: string;
@@ -19,28 +16,32 @@ interface Chapter {
 }
 
 const parseNavPoints = (navPoints: NodeListOf<Element>, currentLevel: number = 1): Chapter[] => {
-    let chapters: Chapter[] = [];
+    const chapters: Chapter[] = [];
 
     navPoints.forEach((navPoint) => {
         const label = navPoint.querySelector('navLabel > text')?.textContent || 'Глава';
         const href = navPoint.querySelector('content')?.getAttribute('src') || '';
 
-        chapters.push({
+        const chapter: Chapter = {
             label,
             href,
             cfi: '',
             level: currentLevel,
-        });
+            children: [],
+        };
 
         // Проверка на наличие вложенных navPoint
         const childNavPoints = navPoint.querySelectorAll(':scope > navPoint');
         if (childNavPoints.length > 0) {
-            chapters = chapters.concat(parseNavPoints(childNavPoints, currentLevel + 1));
+            chapter.children = parseNavPoints(childNavPoints, currentLevel + 1);
         }
+
+        chapters.push(chapter);
     });
 
     return chapters;
 };
+
 
 const BookReader: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -220,7 +221,7 @@ const BookReader: React.FC = () => {
     }
 
     if (error) {
-        return <div>Error loading book: {error.message}</div>;
+        return <div>Error loading book: {error?.message}</div>;
     }
     console.log(chapters);
 
@@ -230,24 +231,7 @@ const BookReader: React.FC = () => {
             {cssContent && <style>{cssContent}</style>}
 
             {/* Всплывающее окно с оглавлением */}
-            <Popover>
-                <PopoverTrigger>Open Char</PopoverTrigger>
-                <PopoverContent className="h-[400px] w-full overflow-y-auto overflow-x-hidden">
-                    {' '}
-                    {chapters.map((chapter, index) => (
-                        <div
-                            key={index}
-                            onClick={() => setCurrentChapter(chapter.href)}
-                            className="flex flex-col max-w-[330px] cursor-pointer hover:bg-slate-400"
-                            style={{
-                                paddingLeft: chapter.level > 1 ? `${chapter.level * 20}px` : undefined,
-                            }}
-                        >
-                            {chapter.label}
-                        </div>
-                    ))}
-                </PopoverContent>
-            </Popover>
+            <ChaptersPopup mockChapters={chapters} currentChapter={currentChapter} setCurrentChapter={setCurrentChapter} />
 
             {/* Основное содержимое книги */}
 

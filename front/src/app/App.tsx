@@ -8,7 +8,7 @@ import DiaryEntryPage from '@/modules/diary/ui/DiaryEntryPage';
 import Library from '@/modules/book-library/ui/main-library/Library';
 import BookReader from '@/modules/book-library/ui/BookReader';
 import TableHr from '@/pages/T/TableHr';
-import BookReaderJSZip from '@/modules/book-library/ui/BookReaderJSZip';
+import BookReaderJSZip from '@/modules/book-library/ui/archive/BookReaderJSZip';
 
 const DiaryPage = lazy(() => import('@/pages/DiaryPage').then((module) => ({ default: module.DiaryPage })));
 const LifeWeeksChart = lazy(() => import('@/modules/life-week/ui/LifeWeeksChart'));

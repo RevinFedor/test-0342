@@ -5,7 +5,7 @@ import { useParams } from 'react-router-dom';
 import { Button } from '@/shared/ui/components/ui/button';
 import { ScrollArea } from '@/shared/ui/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
-import { useGetBookContentQuery } from '../model/booksApiSlice';
+import { useGetBookContentQuery } from '../../model/booksApiSlice';
 
 interface Chapter {
     label: string;
