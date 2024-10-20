@@ -5,12 +5,11 @@ import DOMPurify from 'dompurify';
 import { getFullImagePath } from '../model/epubUtils';
 
 interface UseChapterProps {
-    bookFile: Blob;
+    bookFile: ArrayBuffer; // Changed from Blob to ArrayBuffer
     href: string;
     images: Record<string, string>;
 }
 
-//! Загрузка содержимого текущей главы
 const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
     const [content, setContent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -18,6 +17,7 @@ const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
     useEffect(() => {
         const loadChapter = async () => {
             try {
+                console.log('Loading chapter with href:', href);
                 const zip = await JSZip.loadAsync(bookFile);
                 const baseHref = href.split('#')[0];
                 let chapterFile = zip.file(`OPS/${baseHref}`);
@@ -26,9 +26,9 @@ const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
                     const similarFile = availableFiles.find((file) => file.toLowerCase() === baseHref.toLowerCase());
                     if (similarFile) {
                         chapterFile = zip.file(similarFile);
-                        console.warn(`Найден файл с похожим именем: ${similarFile}`);
+                        console.warn(`Found a similar file name: ${similarFile}`);
                     } else {
-                        throw new Error(`Файл главы не найден: ${baseHref}`);
+                        throw new Error(`Chapter file not found: ${baseHref}`);
                     }
                 }
 
@@ -50,7 +50,7 @@ const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
                                 if (imageUri) {
                                     imgElement.setAttribute('src', imageUri);
                                 } else {
-                                    console.warn(`Изображение не найдено: ${src}`);
+                                    console.warn(`Image not found: ${src}`);
                                 }
                             }
                         } else if (imgElement.tagName.toLowerCase() === 'image') {
@@ -61,7 +61,7 @@ const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
                                 if (imageUri) {
                                     imgElement.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imageUri);
                                 } else {
-                                    console.warn(`Изображение не найдено: ${hrefAttr}`);
+                                    console.warn(`Image not found: ${hrefAttr}`);
                                 }
                             }
                         }
@@ -72,15 +72,17 @@ const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
                     bodyContent = DOMPurify.sanitize(bodyContent);
                     setContent(bodyContent);
                 } else {
-                    throw new Error('Тег <body> не найден в содержимом главы.');
+                    throw new Error('The <body> tag was not found in the chapter content.');
                 }
-            } catch (err) {
-                console.error('Ошибка при загрузке содержимого главы:', err);
+            } catch (err: any) {
+                console.error('Error loading chapter content:', err);
                 setError(err.message);
             }
         };
 
-        loadChapter();
+        if (bookFile && href) {
+            loadChapter();
+        }
     }, [href, bookFile, images]);
 
     return { content, error };
