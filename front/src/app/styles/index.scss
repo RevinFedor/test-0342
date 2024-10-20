@@ -15,6 +15,17 @@
     background-color: rgba(0, 0, 0, 0.7); /* Цвет фона при открытом модальном окне */
 }
 
+/* Скрыть полосу прокрутки для Webkit (Chrome, Safari, Opera) */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Скрыть полосу прокрутки для IE, Edge и Firefox */
+.hide-scrollbar {
+    -ms-overflow-style: none; /* IE и Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
 // scroll bar modal maual
 .modal_content {
     /* Добавляем кастомные стили для полосы прокрутки */

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronRight, ChevronDown, AlignLeft } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/components/ui/popover';
 
 interface Chapter {
@@ -12,8 +12,8 @@ interface Chapter {
 
 interface ChaptersPopupProps {
     mockChapters: Chapter[];
-    currentChapter: any;
-    setCurrentChapter: any;
+    currentChapter: string; // Рекомендуется уточнить тип
+    setCurrentChapter: (href: string) => void; // Рекомендуется уточнить тип
 }
 
 export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter }: ChaptersPopupProps) => {
@@ -40,27 +40,27 @@ export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter 
         return (
             <div key={chapter.href} className="w-full">
                 <div
-                    onClick={() => {
-                        setCurrentChapter(chapter.href);
-                        if (hasChildren) toggleChapter(chapter.href);
-                    }}
+                    onClick={() => setCurrentChapter(chapter.href)}
                     className={`flex items-center p-2 cursor-pointer hover:bg-slate-100 ${currentChapter === chapter.href ? 'bg-slate-200' : ''}`}
                     style={{
                         paddingLeft: `${chapter.level * 12}px`,
                     }}
                 >
-                    {hasChildren && (
+                    {hasChildren ? (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 toggleChapter(chapter.href);
                             }}
-                            className="mr-2 focus:outline-none"
+                            className="mr-2 flex items-center justify-center w-4 h-4 focus:outline-none"
                             aria-expanded={isExpanded}
                             aria-label={isExpanded ? 'Свернуть раздел' : 'Развернуть раздел'}
                         >
                             {isExpanded ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
                         </button>
+                    ) : (
+                        // Заполнитель для выравнивания
+                        <span className="mr-2 w-4 h-4 inline-block"></span>
                     )}
                     <span className="truncate">{chapter.label}</span>
                 </div>
@@ -71,9 +71,13 @@ export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter 
 
     return (
         <Popover>
-            <PopoverTrigger>Open Chapters</PopoverTrigger>
-            <PopoverContent className="w-[330px] p-0">
-                <div className="h-[400px] overflow-y-auto overflow-x-hidden">{mockChapters.map((chapter) => renderChapter(chapter))}</div>
+            <PopoverTrigger>
+                <AlignLeft className="ml-4" />
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0">
+                <div className="h-[400px] overflow-y-auto overflow-x-hidden hide-scrollbar">
+                    {mockChapters.map((chapter) => renderChapter(chapter))}
+                </div>
             </PopoverContent>
         </Popover>
     );
