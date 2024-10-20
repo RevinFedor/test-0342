@@ -1,0 +1,10 @@
+# Игнорировать папки node_modules
+front/node_modules/
+back/node_modules/
+back/uploads/
+
+# Дополнительные игнорируемые файлы и папки
+*.log
+.env
+dist/
+build/

@@ -56,7 +56,7 @@ initBot();
 // Обработка загрузки файла reword
 
 const { uploadEntryImage } = require('./upload');
-
+const { processDatabaseFile } = require('./uploadHandlers');
 app.post('/upload', uploadEntryImage.single('file'), async (req, res) => {
     if (!req.file || !req.body.format) {
         return res.status(400).send('No file or format specified.');

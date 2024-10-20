@@ -13,23 +13,29 @@ interface DiaryEntryFormProps {
     selectedEntry: DiaryEntry | null;
     isOpen: boolean;
     onUpdate: (id: string, patch: any) => void;
+    title: string;
+    setTitle: (title: string) => void;
+    content: string;
+    setContent: (content: string) => void;
 }
-
-export const DiaryEntryForm = ({ selectedEntry, isOpen, onUpdate }: DiaryEntryFormProps) => {
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
+export const DiaryEntryForm = ({ selectedEntry, isOpen, onUpdate, title, setTitle, content, setContent }: DiaryEntryFormProps) => {
     const [isEditing, setIsEditing] = useState(false);
+    const [clickPosition, setClickPosition] = useState<number | null>(null);
 
     const contentRef = useRef<HTMLTextAreaElement>(null);
     const titleRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
-        if (selectedEntry) {
-            setTitle(selectedEntry.title);
-            setContent(selectedEntry.content);
-            setIsEditing(false); // Reset to preview mode when a new entry is selected
+        setIsEditing(false); // Сбрасываем режим редактирования при открытии формы
+    }, [isOpen]);
+
+    // установить курсор в Textarea на ту позицию, которую мы сохранили
+    useEffect(() => {
+        if (isEditing && contentRef.current && clickPosition !== null) {
+            contentRef.current.focus();
+            contentRef.current.setSelectionRange(clickPosition, clickPosition);
         }
-    }, [selectedEntry, isOpen]);
+    }, [isEditing, clickPosition]);
 
     useEffect(() => {
         if (isEditing && contentRef.current) {
@@ -37,40 +43,26 @@ export const DiaryEntryForm = ({ selectedEntry, isOpen, onUpdate }: DiaryEntryFo
         }
     }, [isEditing]);
 
-    useEffect(() => {
-        adjustHeight(contentRef.current);
-    }, [content, isEditing]);
-
     const handleTitleBlur = () => {
         if (selectedEntry && title !== selectedEntry.title) {
-            const updatedEntry = { ...selectedEntry, title };
-            onUpdate(selectedEntry._id, updatedEntry);
+            onUpdate(selectedEntry._id, { title });
         }
     };
 
     const handleContentBlur = () => {
         if (selectedEntry && content !== selectedEntry.content) {
-            const updatedEntry = { ...selectedEntry, content };
-            onUpdate(selectedEntry._id, updatedEntry); } setIsEditing(false);
-    };
-
-    const adjustHeight = (textarea: HTMLTextAreaElement | null) => {
-        if (textarea) {
-            console.log(textarea.style.height);
-
-            textarea.style.height = 'auto';
-            textarea.style.height = `${textarea.scrollHeight}px`;
+            onUpdate(selectedEntry._id, { content });
         }
+        setIsEditing(false);
+        setClickPosition(null); // Сбрасываем позицию курсора
     };
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setTitle(e.target.value);
-        // adjustHeight(e.target);
     };
 
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setContent(e.target.value);
-        adjustHeight(e.target);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
@@ -84,9 +76,36 @@ export const DiaryEntryForm = ({ selectedEntry, isOpen, onUpdate }: DiaryEntryFo
             }
         }
     };
-    
 
-    const handlePreviewClick = () => {
+    const handlePreviewClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        // Получаем текущее выделение (если оно есть)
+        const selection = window.getSelection();
+
+        // Проверяем, есть ли выделение и если выделение отсутствует, позиция курсора равна 0
+        if (selection && selection.rangeCount > 0) {
+            // Получаем первый диапазон выделения
+            const range = selection.getRangeAt(0);
+
+            // Клонируем диапазон, чтобы работать с его копией
+            const preCaretRange = range.cloneRange();
+
+            // Устанавливаем диапазон на всё содержимое элемента, на который кликнули
+            preCaretRange.selectNodeContents(e.currentTarget);
+
+            // Ограничиваем конец диапазона текущей позицией курсора или конца выделенного текста
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+            // Преобразуем диапазон до курсора в строку
+            const selectedText = preCaretRange.toString();
+
+            // Определяем позицию курсора, считая количество символов до конца выделенного текста
+            const position = selectedText.length;
+
+            setClickPosition(position);
+        } else {
+            setClickPosition(0);
+        }
+
         setIsEditing(true);
     };
 
@@ -104,7 +123,7 @@ export const DiaryEntryForm = ({ selectedEntry, isOpen, onUpdate }: DiaryEntryFo
             </div>
             <div className="flex justify-between items-center">
                 <CalendarForm
-                    initialDate={selectedEntry?.diaryDate}
+                    initialDate={selectedEntry?.diaryDate ? selectedEntry.diaryDate : null}
                     onDateChange={(newDate: any) => onUpdate(selectedEntry?._id, { diaryDate: newDate.toISOString() })}
                 />
                 <Button className="">
@@ -121,9 +140,10 @@ export const DiaryEntryForm = ({ selectedEntry, isOpen, onUpdate }: DiaryEntryFo
                         spellCheck="false"
                         onBlur={handleContentBlur}
                         onKeyDown={handleKeyDown}
-                        className="text-[18px] resize-none w-full px-3 py-2 outline-none border-l-2 duration-200 bg-[#242424] overflow-hidden"
+                        className="text-[18px] h-[500px] resize-none shadow-none w-full px-3 py-2 outline-none  border-none duration-200 bg-[#242424]"
                         value={content}
                         onChange={handleContentChange}
+                        style={{ boxShadow: 'none', borderLeft: '2px solid red' }}
                     />
                 ) : (
                     <div onClick={handlePreviewClick} className="cursor-text text-[18px] w-full px-3 py-2 border-l-2">

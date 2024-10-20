@@ -73,20 +73,40 @@ const diaryApi = api.injectEndpoints({
                 body: data,
             }),
             invalidatesTags: ['DiaryEntry'],
-            // async onQueryStarted({ id, ...data }, { dispatch, queryFulfilled }) {
-            //     const patchResult = dispatch(
-            //         api.util.updateQueryData('getAllDiaryEntries', id, (drafts: any) => {
-            //             drafts = data;
-            //             drafts = drafts.filter((entry) => note._id !== data.idNote);
-            //         })
-            //     );
-            //     try {
-            //         await queryFulfilled;
-            //     } catch {
-            //         patchResult.undo();
-            //     }
-            // },
+            async onQueryStarted({ id, data }, { dispatch, queryFulfilled }) {
+               
+                // Определяем аргументы, используемые в useGetAllDiaryEntriesQuery
+                const args = {
+                    tags: [],
+                    sources: [],
+                    strict: false,
+                    sort: { field: 'date', order: 'desc' },
+                };
+
+                // Оптимистическое обновление кэша
+                const patchResult = dispatch(
+                    api.util.updateQueryData('getAllDiaryEntries', args, (draft: any) => {
+         
+                        const index = draft.findIndex((entry: any) => entry._id === id);
+                   
+
+                        if (index !== -1) {
+                            // Обновляем запись напрямую
+                            draft[index] = {
+                                ...draft[index],
+                                ...data,
+                            };
+                        }
+                    })
+                );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    patchResult.undo();
+                }
+            },
         }),
+
         uploadImage: builder.mutation({
             query: ({ id, data }) => ({
                 url: `diaryEntries/${id}/images`,

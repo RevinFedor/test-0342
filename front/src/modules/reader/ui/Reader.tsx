@@ -7,7 +7,6 @@ import { processBook } from '../model/utils';
 import { Chapter, HighlightAndNote } from '../model/types';
 import { saveBookToLocalStorage, loadBookFromLocalStorage } from '../model/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/shared/ui/components/ui/select';
-import { Input } from '@/shared/ui/components/ui/input';
 import TextToSpeech from './TextToSpeech';
 import { FileJson2 } from 'lucide-react';
 

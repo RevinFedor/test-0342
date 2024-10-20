@@ -28,6 +28,7 @@ export function createReduxStore() {
                 thunk: {
                     extraArgument: { api },
                 },
+                 serializableCheck: false
             }).concat(api.middleware),
     });
 

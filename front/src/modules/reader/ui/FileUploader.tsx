@@ -1,7 +1,8 @@
-import React from 'react';
+// FileUploader.tsx
+import React, { useEffect } from 'react';
 import { useDropzone, DropzoneOptions } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/components/ui/card';
-import { Upload, AlertCircle, FileText } from 'lucide-react';
+import { Upload, AlertCircle, FileText, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 interface FileUploaderProps {
@@ -17,7 +18,27 @@ interface FileUploaderProps {
     dragInactiveText?: string;
     loadingText?: string;
     className?: string;
+    resetTrigger?: any;
+    size?: 'small' | 'medium' | 'large'; // Определяем размер как строковые литералы
 }
+
+const sizeClasses = {
+    small: {
+        container: 'w-64 h-40',
+        icon: 'h-8 w-8',
+        text: 'text-sm',
+    },
+    medium: {
+        container: 'w-96 h-40',
+        icon: 'h-12 w-12',
+        text: 'text-base',
+    },
+    large: {
+        container: 'w-full h-40',
+        icon: 'h-16 w-16',
+        text: 'text-lg',
+    },
+};
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
     onFileSelect,
@@ -32,6 +53,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     dragInactiveText = 'Перетащите файл сюда или кликните для выбора',
     loadingText = 'Загрузка и обработка файла...',
     className,
+    resetTrigger,
+    size = 'large', // Значение по умолчанию
 }) => {
     const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
 
@@ -51,22 +74,40 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone(dropzoneOptions);
 
-    // Extract accepted file extensions
+    // Извлекаем допустимые расширения файлов
     const acceptedExtensions = Object.values(acceptedFileTypes).flat().join(', ');
 
+    // Функция для форматирования размера файла
+    const formatFileSize = (bytes: number): string => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    // Сбрасываем выбранный файл при изменении resetTrigger
+    useEffect(() => {
+        if (resetTrigger) {
+            setSelectedFile(null);
+        }
+    }, [resetTrigger]);
+
+    // Получаем классы для выбранного размера
+    const currentSizeClasses = sizeClasses[size] || sizeClasses['large'];
 
     return (
-        <Card className={cn('mb-4 relative', className)}>
+        <Card className={cn('relative', className)}>
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle className="text-2xl font-bold">{title}</CardTitle>
-                    <span className="text-sm ">Accepted: {acceptedExtensions}</span>
+                    <span className="text-sm">Accepted: {acceptedExtensions}</span>
                 </div>
             </CardHeader>
             <CardContent>
                 <div
                     {...getRootProps()}
-                    className={` border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-300 ease-in-out cursor-pointer ${
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-300 ease-in-out cursor-pointer ${currentSizeClasses.container} ${
                         isDragActive
                             ? 'border-blue-500 bg-blue-50'
                             : selectedFile
@@ -75,19 +116,26 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
                     }`}
                 >
                     <input {...getInputProps()} />
-                    {selectedFile ? (
-                        <div className="flex items-center justify-center w-[400px]">
-                            <FileText className="h-8 w-8 text-green-600" />
-                            <p className="ml-2 text-green-600">{selectedFile.name}</p>
+                    {loading ? (
+                        <div className="flex flex-col items-center">
+                            <Loader2 className={`animate-spin text-blue-500 ${currentSizeClasses.icon}`} />
+                            <p className={`mt-2 ${currentSizeClasses.text} text-blue-500`}>{loadingText}</p>
+                        </div>
+                    ) : selectedFile ? (
+                        <div className="flex flex-col items-center">
+                            <FileText className={`text-green-600 ${currentSizeClasses.icon}`} />
+                            <p className={`mt-2 ${currentSizeClasses.text} text-green-600`}>{selectedFile.name}</p>
+                            <p className={`text-sm ${currentSizeClasses.text} text-green-600`}>{formatFileSize(selectedFile.size)}</p>
                         </div>
                     ) : (
                         <>
                             {icon}
-                            <p className="mt-2 text-sm text-gray-600 w-[400px] text-center">{isDragActive ? dragActiveText : dragInactiveText}</p>
+                            <p className={`mt-2 ${currentSizeClasses.text} text-gray-600`}>
+                                {isDragActive ? dragActiveText : dragInactiveText}
+                            </p>
                         </>
                     )}
                 </div>
-                {loading && <p className="text-blue-500 mt-6 absolute right-1/4 -bottom-8">{loadingText}</p>}
                 {error && error !== 'No file selected' && (
                     <div className="flex items-center text-red-500 mt-4">
                         <AlertCircle className="mr-2" />

@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.epubjs-hl {
+    background-color: red !important;
+}
+
 // custom modal overlay
 [data-rmiz-modal-overlay='hidden'] {
     background-color: rgba(0, 0, 0, 0.7); /* Цвет фона при закрытом модальном окне */

@@ -35,6 +35,11 @@ const Header = () => {
                               Library
                         </NavLink>
                     </li>
+                    <li>
+                        <NavLink to="/Table" className={({ isActive }) => (isActive ? 'text-blue-400' : 'hover:text-gray-300')}>
+                              Table
+                        </NavLink>
+                    </li>
                     {/* Add more links as needed */}
                 </ul>
                 <ModeToggle />

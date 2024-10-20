@@ -1,5 +1,5 @@
 import { api } from '@/app/api/apiSlice';
-import ePub from 'epubjs';
+import JSZip from 'jszip';
 
 export interface Book {
     _id: string;
@@ -22,6 +22,38 @@ export const booksApi = api.injectEndpoints({
             query: () => 'books',
             providesTags: ['Books'],
         }),
+        getBookById: builder.query<ArrayBuffer, string>({
+            query: (id) => ({
+                url: `http://localhost:3500/api/books/${id}`,
+                responseHandler: (response) => response.arrayBuffer(), // Обработка ответа как ArrayBuffer
+            }),
+        }),
+
+        getBookContent: builder.query<ParsedBook, string>({
+            query: (filePath) => ({
+                url: 'http://localhost:3500' + filePath,
+                responseHandler: (response) => response.arrayBuffer(),
+            }),
+            transformResponse: async (content: ArrayBuffer, _, filePath) => {
+                const zip = await JSZip.loadAsync(content);
+                const metadataFile = zip.file('OEBPS/content.opf') || zip.file('content.opf');
+                const metadataContent = metadataFile ? await metadataFile.async('text') : '';
+
+                const parser = new DOMParser();
+                const metadataDoc = parser.parseFromString(metadataContent, 'application/xml');
+                const title = metadataDoc.querySelector('title')?.textContent || 'Unknown Title';
+                const creator = metadataDoc.querySelector('creator')?.textContent || 'Unknown Author';
+                const description = metadataDoc.querySelector('description')?.textContent || 'No description available';
+
+                return {
+                    title,
+                    creator,
+                    description,
+                    content,
+                    filePath,
+                };
+            },
+        }),
         uploadBook: builder.mutation<void, FormData>({
             query: (formData) => ({
                 url: 'books',
@@ -33,30 +65,11 @@ export const booksApi = api.injectEndpoints({
         deleteBook: builder.mutation<void, string>({
             query: (id) => ({
                 url: `books/${id}`,
-
                 method: 'DELETE',
             }),
             invalidatesTags: ['Books'],
         }),
-        getBookContent: builder.query<ParsedBook, string>({
-            query: (filePath) => ({
-                url: 'http://localhost:3500' + filePath,
-                responseHandler: (response) => response.arrayBuffer(),
-            }),
-            transformResponse: async (content: ArrayBuffer, _, filePath) => {
-                const book = ePub(content);
-                await book.ready;
-                const metadata = await book.loaded.metadata;
-                return {
-                    title: metadata.title || 'Unknown Title',
-                    creator: metadata.creator || 'Unknown Author',
-                    description: metadata.description || 'No description available',
-                    content,
-                    filePath,
-                };
-            },
-        }),
     }),
 });
 
-export const { useGetBooksQuery, useUploadBookMutation, useDeleteBookMutation, useGetBookContentQuery } = booksApi;
+export const { useGetBooksQuery, useUploadBookMutation, useDeleteBookMutation, useGetBookByIdQuery, useGetBookContentQuery } = booksApi;

@@ -7,19 +7,16 @@ import { Calendar } from '@/shared/ui/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/components/ui/popover';
 
 interface CalendarFormProps {
-    initialDate: Date | null;
+    initialDate: Date | string | null;
     onDateChange: (date: Date) => void;
     className?: string;
 }
 
-// 
+//
 export function CalendarForm({ initialDate, onDateChange, className }: CalendarFormProps) {
     const handleDateSelect = (selectedDate: Date) => {
         onDateChange(selectedDate); // Вызываем колбэк при выборе даты
-        
     };
-
-    
 
     return (
         <div className={`mb-2 ${className}`}>

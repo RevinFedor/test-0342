@@ -5,8 +5,10 @@ import { lazy, Suspense } from 'react';
 import Reword from '@/modules/reword-export/ui/Reword';
 import { Toaster } from '@/shared/ui/components/ui/toaster';
 import DiaryEntryPage from '@/modules/diary/ui/DiaryEntryPage';
-import Library from '@/modules/book-library/ui/Library';
+import Library from '@/modules/book-library/ui/main-library/Library';
 import BookReader from '@/modules/book-library/ui/BookReader';
+import TableHr from '@/pages/T/TableHr';
+import BookReaderJSZip from '@/modules/book-library/ui/BookReaderJSZip';
 
 const DiaryPage = lazy(() => import('@/pages/DiaryPage').then((module) => ({ default: module.DiaryPage })));
 const LifeWeeksChart = lazy(() => import('@/modules/life-week/ui/LifeWeeksChart'));
@@ -25,8 +27,10 @@ function App() {
                         <Route path="/LifeWeeks" element={<LifeWeeksChart />} />
                         <Route path="/Reader" element={<Reader />} />
                         <Route path="/Reword" element={<Reword />} />
-                        <Route path="/Library" element={<Library />} /> 
+                        <Route path="/Library" element={<Library />} />
                         <Route path="/Library/:id" element={<BookReader />} />
+                        <Route path="/LibraryZip/:id" element={<BookReaderJSZip />} />
+                        <Route path="/Table" element={<TableHr />} />
                     </Routes>
                     <Toaster />
                 </BrowserRouter>

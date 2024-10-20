@@ -58,8 +58,6 @@ const Diary: React.FC = () => {
         sort: currentSort,
     });
 
-
-
     const [deleteDiaryEntry] = useDeleteDiaryEntryMutation();
     const [updateDiaryEntry] = useUpdateDiaryEntryMutation();
 
@@ -72,7 +70,6 @@ const Diary: React.FC = () => {
     //         );
 
     //         dispatch(setAvailableTags(availableTags));
-
 
     //         setSelectedEntry(diaryEntries.find((el: DiaryEntry) => selectedEntry?._id === el._id) || null);
     //     }
@@ -93,9 +90,9 @@ const Diary: React.FC = () => {
                 id,
                 data,
             }).unwrap();
-            if (data.diaryDate) {
-                setSelectedEntry((prev: any) => (prev ? { ...prev, diaryDate: data.diaryDate } : null));
-            }
+
+            // Обновляем локальный selectedEntry, чтобы изменения отобразились сразу в модальном окне
+            setSelectedEntry((prev) => (prev ? { ...prev, ...data } : null));
         } catch (error) {
             console.error('Failed to update diary entry:', error);
         }
