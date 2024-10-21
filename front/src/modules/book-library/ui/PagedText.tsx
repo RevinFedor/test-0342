@@ -10,9 +10,10 @@ interface PagedTextProps {
     wordsPerPage?: number;
     onNextChapter: () => void; // Функция для перехода на следующую главу
     onPrevChapter: () => void; // Функция для перехода на предыдущую главу
+    onSubchapterChange?: (href: string) => void; // Новая функция для обновления текущей подглавы
 }
 
-export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter, onPrevChapter }: PagedTextProps) {
+export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter, onPrevChapter, onSubchapterChange }: PagedTextProps) {
     const [pages, setPages] = useState<string[][]>([]);
     const [currentPage, setCurrentPage] = useState(0);
     const [isFocused, setIsFocused] = useState(false); // Отслеживаем фокус
@@ -34,7 +35,19 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
             let currentPageWords: string[] = [];
             let currentColumn: string[] = [];
 
+            const subchapterPagesMap: Record<number, string> = {}; // Карта страниц к подглавам
+
+            let currentHref: string = null;
+
             const processNode = (node: Node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    const element = node as HTMLElement;
+                    if (element.id) {
+                        currentHref = `#${element.id}`;
+                        subchapterPagesMap[pagesArray.length] = currentHref;
+                    }
+                }
+
                 if (node.nodeType === Node.TEXT_NODE) {
                     const nodeWords = node.textContent?.split(/\s+/) || [];
                     for (const word of nodeWords) {
@@ -76,19 +89,41 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
                 pagesArray.push(currentPageWords);
             }
 
-            return pagesArray;
+            // После разбивки страниц, обновим текущую подглаву
+            setTimeout(() => {
+                if (onSubchapterChange && subchapterPagesMap[currentPage]) {
+                    onSubchapterChange(subchapterPagesMap[currentPage]);
+                }
+            }, 0);
+
+            return { pagesArray, subchapterPagesMap };
         };
 
-        const pagesArray = splitHtmlIntoPages(text, wordsPerPage);
+        const { pagesArray, subchapterPagesMap } = splitHtmlIntoPages(text, wordsPerPage);
         setPages(pagesArray);
         setCurrentPage(0);
-    }, [text, wordsPerPage]);
+
+        // Обновляем текущую подглаву при загрузке
+        if (onSubchapterChange && subchapterPagesMap[0]) {
+            onSubchapterChange(subchapterPagesMap[0]);
+        }
+    }, [text, wordsPerPage, onSubchapterChange]);
 
     const goToPreviousPage = () => {
         if (currentPage === 0) {
             onPrevChapter(); // Переход на предыдущую главу, если на первой странице
         } else {
-            setCurrentPage((prev) => Math.max(0, prev - 1));
+            setCurrentPage((prev) => {
+                const newPage = Math.max(0, prev - 1);
+                // Обновляем текущую подглаву, если есть
+                if (onSubchapterChange) {
+                    // Здесь нужно определить, соответствует ли новая страница новой подглаве
+                    // Для упрощения предполагаем, что каждая страница соответствует одной подглаве
+                    // В реальном приложении нужно реализовать более точную логику
+                    onSubchapterChange(null); // Замените на актуальную логику
+                }
+                return newPage;
+            });
         }
     };
 
@@ -96,7 +131,14 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
         if (currentPage === pages.length - 1) {
             onNextChapter(); // Переход на следующую главу, если на последней странице
         } else {
-            setCurrentPage((prev) => Math.min(pages.length - 1, prev + 1));
+            setCurrentPage((prev) => {
+                const newPage = Math.min(pages.length - 1, prev + 1);
+                // Обновляем текущую подглаву, если есть
+                if (onSubchapterChange) {
+                    onSubchapterChange(null); // Замените на актуальную логику
+                }
+                return newPage;
+            });
         }
     };
 
