@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import DOMPurify from 'dompurify';
-import { parseNavPoints, getFullImagePath } from '../model/epubUtils'; // Вынесите функции в shared/utils
+import { parseNavPoints, getFullImagePath } from '../model/utils'; // Вынесите функции в shared/utils
 import { Chapter } from '../model/types';
 
 const useEPUB = (bookFile: Blob | null) => {

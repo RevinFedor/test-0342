@@ -7,11 +7,12 @@ import { ChaptersPopup } from './ChaptersPopup';
 import useChapter from '../hooks/useChapter';
 import useEPUB from '../hooks/useEPUB';
 import PagedText from './PagedText';
-import { flattenChapters, getParentChapters } from '../model/epubUtils';
+import { flattenChapters, getParentChapters } from '../model/utils';
+import useChapterDuplicate from '../hooks/useChapterDuplicate';
 
 const BookReader: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const [currentChapter, setCurrentChapter] = useState<string | null>(null);
+    const [currentChapter, setCurrentChapter] = useState<string>(null);
     const [isScrollingInPopup, setIsScrollingInPopup] = useState(false); // Новый state для отслеживания скролла внутри оглавления
 
     const { data: bookFile, isLoading: isLoadingContent, error } = useGetBookByIdQuery(id);
@@ -28,6 +29,18 @@ const BookReader: React.FC = () => {
         href: currentChapter,
         images,
     });
+
+    //! Используем хук для поиска дублирующихся глав
+    const {
+        duplicates,
+        loading: isLoadingDuplicates,
+        error: duplicatesError,
+    } = useChapterDuplicate({
+        bookFile,
+        chapters,
+    });
+
+    console.log(duplicates);
 
     //! настройка скролла для popup оглавления
     const handleWheel = (event: WheelEvent) => {
@@ -98,7 +111,7 @@ const BookReader: React.FC = () => {
                 <div className="current-chapter-title text-[12px] font-bold" style={{ margin: '0 20px', textAlign: 'center' }}>
                     {parentChapters.map((chapter, index) => (
                         <span key={index}>
-                            {chapter.label} {index < parentChapters.length - 1 ? ' » ' : ''}
+                            {chapter.label} {index < parentChapters.length - 1 ? ' » ' : ''} {chapter.href}
                         </span>
                     ))}
                 </div>

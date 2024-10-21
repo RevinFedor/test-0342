@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import DOMPurify from 'dompurify';
-import { getFullImagePath } from '../model/epubUtils';
+import { getFullImagePath } from '../model/utils';
 
 interface UseChapterProps {
-    bookFile: ArrayBuffer; // Changed from Blob to ArrayBuffer
+    bookFile: ArrayBuffer | null; // Changed from Blob to ArrayBuffer
     href: string;
     images: Record<string, string>;
 }
@@ -15,6 +15,9 @@ const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!bookFile) {
+            return;
+        }
         const loadChapter = async () => {
             try {
                 console.log('Loading chapter with href:', href);
@@ -46,9 +49,6 @@ const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
                         if (src) {
                             const imagePath = getFullImagePath(baseHref, src);
                             const imageUri = images[imagePath] || images[src];
-                            console.log('Image src:', src);
-                            console.log('Full image path:', imagePath);
-                            console.log('Image URI found:', imageUri);
 
                             // Проверяем, является ли элемент HTML-картинкой (<img>) или SVG-картинкой (<image>),
                             // и устанавливаем правильный атрибут для источника изображения (src для HTML и href для SVG).
