@@ -197,6 +197,7 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
         return <div className="text-center p-4">Нет текста для отображения.</div>;
     }
 
+ //test commit
     return (
         <div
             className="mx-auto p-10"
