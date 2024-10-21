@@ -1,3 +1,5 @@
+// ui/ChaptersPopup.tsx
+
 import { useState } from 'react';
 import { ChevronRight, ChevronDown, AlignLeft } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/components/ui/popover';
@@ -32,11 +34,11 @@ export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter,
         });
     };
 
-    const handleScroll = () => {
+    const handleScrollStart = () => {
         setIsScrollingInPopup(true);
     };
 
-    const handleMouseLeave = () => {
+    const handleScrollEnd = () => {
         setIsScrollingInPopup(false);
     };
 
@@ -81,13 +83,13 @@ export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter,
     return (
         <Popover>
             <PopoverTrigger>
-                <AlignLeft className="ml-4" />
+                <AlignLeft className="ml-4 cursor-pointer" />
             </PopoverTrigger>
             <PopoverContent className="w-[400px] p-0">
                 <div
                     className="h-[400px] overflow-y-auto overflow-x-hidden hide-scrollbar"
-                    onScroll={handleScroll} // Отслеживаем скролл
-                    onMouseLeave={handleMouseLeave} // Сброс состояния скролла при выходе мыши
+                    onScroll={handleScrollStart} // Устанавливаем состояние скролла при прокрутке
+                    onMouseLeave={handleScrollEnd} // Сбрасываем состояние скролла при уходе мыши
                 >
                     {mockChapters.map((chapter) => renderChapter(chapter))}
                 </div>

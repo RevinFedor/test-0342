@@ -164,3 +164,6 @@ export const computeHash = async (content: string): Promise<string> => {
     const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
 };
+
+
+

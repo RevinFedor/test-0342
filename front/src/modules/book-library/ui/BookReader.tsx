@@ -1,3 +1,5 @@
+// ui/BookReader.tsx
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGetBookByIdQuery } from '../model/booksApiSlice';
@@ -13,7 +15,7 @@ import useChapterDuplicate from '../hooks/useChapterDuplicate';
 const BookReader: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [currentChapter, setCurrentChapter] = useState<string>(null);
-    const [isScrollingInPopup, setIsScrollingInPopup] = useState(false); // Новый state для отслеживания скролла внутри оглавления
+    const [isScrollingInPopup, setIsScrollingInPopup] = useState(false); // Отслеживаем скролл в popup
 
     const { data: bookFile, isLoading: isLoadingContent, error } = useGetBookByIdQuery(id);
     const { chapters, cssContent, images } = useEPUB(bookFile);
@@ -24,7 +26,7 @@ const BookReader: React.FC = () => {
         }
     }, [chapters, currentChapter]);
 
-    const { content } = useChapter({
+    const { content, error: chapterError } = useChapter({
         bookFile,
         href: currentChapter,
         images,
@@ -42,11 +44,13 @@ const BookReader: React.FC = () => {
 
     console.log(duplicates);
 
-    //! настройка скролла для popup оглавления
+    //! Обработка событий колесика для popup оглавления
     const handleWheel = (event: WheelEvent) => {
         if (!isScrollingInPopup) {
             if (event.deltaY < 0) {
+                // Обработка прокрутки вверх, если нужно
             } else if (event.deltaY > 0) {
+                // Обработка прокрутки вниз, если нужно
             }
         }
     };
@@ -59,11 +63,11 @@ const BookReader: React.FC = () => {
         };
     }, [isScrollingInPopup]);
 
-    //!логика переключения глав
+    //! Логика переключения глав
 
-    // Логика переключения глав с учётом вложенности
+    // Функция для перехода на следующую главу
     const handleNext = () => {
-        const flatChapters = flattenChapters(chapters); // Все главы в одном массиве
+        const flatChapters = flattenChapters(chapters); // Плоский список всех глав
         const currentChapterIndex = flatChapters.findIndex((ch) => ch.href === currentChapter);
 
         if (currentChapterIndex !== -1 && currentChapterIndex < flatChapters.length - 1) {
@@ -71,8 +75,9 @@ const BookReader: React.FC = () => {
         }
     };
 
+    // Функция для перехода на предыдущую главу
     const handlePrev = () => {
-        const flatChapters = flattenChapters(chapters); // Все главы в одном массиве
+        const flatChapters = flattenChapters(chapters); // Плоский список всех глав
         const currentChapterIndex = flatChapters.findIndex((ch) => ch.href === currentChapter);
 
         if (currentChapterIndex > 0) {
@@ -90,6 +95,10 @@ const BookReader: React.FC = () => {
         return <div>Error loading book: {error?.message}</div>;
     }
 
+    if (chapterError) {
+        return <div>Error loading chapter: {chapterError}</div>;
+    }
+
     return (
         <div className="book-reader" style={{ position: 'relative' }}>
             {/* Внедрение CSS-стилей */}
@@ -100,7 +109,7 @@ const BookReader: React.FC = () => {
                 mockChapters={chapters}
                 currentChapter={currentChapter}
                 setCurrentChapter={setCurrentChapter}
-                setIsScrollingInPopup={setIsScrollingInPopup} // Передаем управление скроллом
+                setIsScrollingInPopup={setIsScrollingInPopup} // Передаём состояние скролла
             />
 
             <div className="page-navigation flex justify-center mb-2 relative">
@@ -121,7 +130,11 @@ const BookReader: React.FC = () => {
             </div>
 
             {/* Основное содержимое книги */}
-            <PagedText text={content} onNextChapter={handleNext} onPrevChapter={handlePrev} />
+            <PagedText
+                text={content}
+                onNextChapter={handleNext}
+                onPrevChapter={handlePrev}
+            />
         </div>
     );
 };

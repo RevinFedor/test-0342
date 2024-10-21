@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+// ui/PagedText.tsx
+
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/shared/ui/components/ui/button';
 import parse from 'html-react-parser';
@@ -14,7 +16,8 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
     const [pages, setPages] = useState<string[][]>([]);
     const [currentPage, setCurrentPage] = useState(0);
     const [isFocused, setIsFocused] = useState(false); // Отслеживаем фокус
-    const [isScrollingBlocked, setIsScrollingBlocked] = useState(false); // Новый флаг для блокировки прокрутки
+    const [isScrollingBlocked, setIsScrollingBlocked] = useState(false); // Флаг для блокировки прокрутки временно
+    const sentinelRef = useRef<HTMLDivElement>(null); // Реф для sentinel-элемента
 
     useEffect(() => {
         if (!text) {
@@ -83,7 +86,7 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
 
     const goToPreviousPage = () => {
         if (currentPage === 0) {
-            onPrevChapter(); // Переход на предыдущую главу, если это первая страница
+            onPrevChapter(); // Переход на предыдущую главу, если на первой странице
         } else {
             setCurrentPage((prev) => Math.max(0, prev - 1));
         }
@@ -91,20 +94,20 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
 
     const goToNextPage = () => {
         if (currentPage === pages.length - 1) {
-            onNextChapter(); // Переход на следующую главу, если это последняя страница
+            onNextChapter(); // Переход на следующую главу, если на последней странице
         } else {
             setCurrentPage((prev) => Math.min(pages.length - 1, prev + 1));
         }
     };
 
     const handleWheel = (event: React.WheelEvent) => {
-        if (!isFocused || isScrollingBlocked) return; // Если компонент не в фокусе или прокрутка заблокирована, игнорируем
+        if (!isFocused || isScrollingBlocked) return; // Игнорируем, если не в фокусе или прокрутка заблокирована
 
         if (event.deltaY < 0) {
             if (currentPage === 0) {
                 setIsScrollingBlocked(true); // Блокируем прокрутку
                 onPrevChapter(); // Переход на предыдущую главу
-                setTimeout(() => setIsScrollingBlocked(false), 500); // Разблокируем через 500 мс
+                setTimeout(() => setIsScrollingBlocked(false), 500); // Разблокируем через 500мс
             } else {
                 goToPreviousPage(); // Переход на предыдущую страницу
             }
@@ -112,12 +115,41 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
             if (currentPage === pages.length - 1) {
                 setIsScrollingBlocked(true); // Блокируем прокрутку
                 onNextChapter(); // Переход на следующую главу
-                setTimeout(() => setIsScrollingBlocked(false), 500); // Разблокируем через 500 мс
+                setTimeout(() => setIsScrollingBlocked(false), 500); // Разблокируем через 500мс
             } else {
                 goToNextPage(); // Переход на следующую страницу
             }
         }
     };
+
+    // Настройка Intersection Observer только для последней страницы
+    useEffect(() => {
+        if (currentPage !== pages.length - 1) return; // Наблюдаем только на последней странице
+        if (!sentinelRef.current) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        onNextChapter(); // Автоматически переходить на следующую главу
+                    }
+                });
+            },
+            {
+                root: null, // Используем viewport как контейнер
+                rootMargin: '0px',
+                threshold: 1.0, // Срабатывает, когда sentinel полностью виден
+            }
+        );
+
+        observer.observe(sentinelRef.current);
+
+        return () => {
+            if (sentinelRef.current) {
+                observer.unobserve(sentinelRef.current);
+            }
+        };
+    }, [currentPage, pages.length, onNextChapter]);
 
     if (pages.length === 0) {
         return <div className="text-center p-4">Нет текста для отображения.</div>;
@@ -125,10 +157,10 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
 
     return (
         <div
-            className="mx-auto p-10  "
+            className="mx-auto p-10"
             onMouseEnter={() => setIsFocused(true)} // Устанавливаем фокус при наведении
-            onMouseLeave={() => setIsFocused(false)} // Сбрасываем фокус при выходе
-            onWheel={handleWheel} // Обрабатываем скролл только при фокусе
+            onMouseLeave={() => setIsFocused(false)} // Сбрасываем фокус при уходе
+            onWheel={handleWheel} // Обрабатываем события прокрутки
         >
             <div className="flex justify-center items-center text-[12px]">
                 <div className="flex justify-between items-center mb-4">
@@ -149,6 +181,10 @@ export default function PagedText({ text = '', wordsPerPage = 250, onNextChapter
                 <div className="">{parse(pages[currentPage][0] || '')}</div>
                 <div className="">{parse(pages[currentPage][1] || '')}</div>
             </div>
+            {/* Рендерим sentinel только на последней странице */}
+            {currentPage === pages.length - 1 && (
+                <div ref={sentinelRef} className="sentinel" style={{ height: '1px' }}></div>
+            )}
         </div>
     );
 }
