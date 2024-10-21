@@ -8,6 +8,7 @@ interface Book {
     _id: string;
     filePath: string;
     title: string;
+    description: string;
     author: string;
     language: string;
     size: number;
@@ -47,12 +48,27 @@ const BookDetails: React.FC<BookDetailsProps> = ({ book, isOpen, onClose, onDele
                     )}
                     {/* Дополнительная информация */}
                     <div className="mt-4 space-y-2">
-                        <p><strong>Автор:</strong> {book.author}</p>
-                        <p><strong>Язык:</strong> {book.language}</p>
-                        <p><strong>Размер:</strong> {(book.size / (1024 * 1024)).toFixed(2)} MB</p>
-                        <p><strong>Дата загрузки:</strong> {new Date(book.uploadDate).toLocaleDateString()}</p>
-                        <p><strong>Количество слов:</strong> {book.wordCount}</p>
-                        <p><strong>Количество строк:</strong> {book.lineCount}</p>
+                        <p>
+                            <strong>Автор:</strong> {book.author}
+                        </p>
+                        <p>
+                            <strong>Язык:</strong> {book.language}
+                        </p>
+                        <p>
+                            <strong>Размер:</strong> {(book.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                        <p>
+                            <strong>Дата загрузки:</strong> {new Date(book.uploadDate).toLocaleDateString()}
+                        </p>
+                        <p>
+                            <strong>Количество слов:</strong> {book.wordCount}
+                        </p>
+                        <p>
+                            <strong>Количество строк:</strong> {book.lineCount}
+                        </p>
+                        <p>
+                            <strong>Описание:</strong> {book.description}
+                        </p>
                         {/* Добавьте другие поля по необходимости */}
                     </div>
                 </ScrollArea>

@@ -10,6 +10,10 @@ const BookSchema = new mongoose.Schema({
         type: String,
         default: 'Unknown Title',
     },
+    description: {
+        type: String,
+        default: 'Unknown description',
+    },
     author: {
         type: String,
         default: 'Unknown Author',

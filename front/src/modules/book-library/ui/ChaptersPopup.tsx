@@ -12,11 +12,12 @@ interface Chapter {
 
 interface ChaptersPopupProps {
     mockChapters: Chapter[];
-    currentChapter: string; // Рекомендуется уточнить тип
-    setCurrentChapter: (href: string) => void; // Рекомендуется уточнить тип
+    currentChapter: string;
+    setCurrentChapter: (href: string) => void;
+    setIsScrollingInPopup: (isScrolling: boolean) => void; // Новый пропс для передачи состояния скролла
 }
 
-export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter }: ChaptersPopupProps) => {
+export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter, setIsScrollingInPopup }: ChaptersPopupProps) => {
     const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
 
     const toggleChapter = (href: string) => {
@@ -29,6 +30,14 @@ export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter 
             }
             return newSet;
         });
+    };
+
+    const handleScroll = () => {
+        setIsScrollingInPopup(true);
+    };
+
+    const handleMouseLeave = () => {
+        setIsScrollingInPopup(false);
     };
 
     const renderChapter = (chapter: Chapter, parentExpanded: boolean = true) => {
@@ -75,7 +84,11 @@ export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter 
                 <AlignLeft className="ml-4" />
             </PopoverTrigger>
             <PopoverContent className="w-[400px] p-0">
-                <div className="h-[400px] overflow-y-auto overflow-x-hidden hide-scrollbar">
+                <div
+                    className="h-[400px] overflow-y-auto overflow-x-hidden hide-scrollbar"
+                    onScroll={handleScroll} // Отслеживаем скролл
+                    onMouseLeave={handleMouseLeave} // Сброс состояния скролла при выходе мыши
+                >
                     {mockChapters.map((chapter) => renderChapter(chapter))}
                 </div>
             </PopoverContent>

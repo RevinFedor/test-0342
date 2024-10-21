@@ -12,6 +12,9 @@ module.exports = {
             },
         },
         extend: {
+            fontFamily: {
+                segoeUI: ['Segoe UI', 'sans-serif'],
+            },
             keyframes: {
                 'accordion-down': {
                     from: { height: '0' },

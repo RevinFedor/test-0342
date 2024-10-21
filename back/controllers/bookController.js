@@ -52,7 +52,10 @@ exports.uploadBook = async (req, res) => {
 
         // Извлечение метаданных
         const metadata = parsed.package.metadata[0];
+        console.log(metadata);
+
         const title = metadata['dc:title'] ? metadata['dc:title'][0] : 'Unknown Title';
+        const description = metadata['dc:description'] ? metadata['dc:description'][0] : 'Unknown Description';
         const author = metadata['dc:creator'] ? metadata['dc:creator'][0]._ || metadata['dc:creator'][0] : 'Unknown Author';
         const language = metadata['dc:language'] ? metadata['dc:language'][0] : 'Unknown Language';
 
@@ -119,6 +122,7 @@ exports.uploadBook = async (req, res) => {
         const newBook = new Book({
             filePath,
             title,
+            description,
             author,
             language,
             size: fileSize,

@@ -35,3 +35,50 @@ export const getFullImagePath = (baseHref: string, src: string): string => {
         return chapterPath + src;
     }
 };
+
+
+
+//! Функция для рекурсивного извлечения всех глав, включая вложенные
+export const flattenChapters = (chapters: Chapter[]): Chapter[] => {
+    let flatChapters: Chapter[] = [];
+
+    const traverse = (chapterList: Chapter[]) => {
+        chapterList.forEach((chapter) => {
+            flatChapters.push(chapter);
+            if (chapter?.children && chapter.children.length > 0) {
+                traverse(chapter.children);
+            }
+        });
+    };
+
+    traverse(chapters);
+    return flatChapters;
+};
+
+//! Функция для получения всех родительских глав до третьего или четвертого уровня
+export const getParentChapters = (chapters: Chapter[], href: string): Chapter[] => {
+    const parents: Chapter[] = [];
+
+    const findChapter = (chapterList: Chapter[], currentHref: string, ancestors: Chapter[] = []): boolean => {
+        for (const chapter of chapterList) {
+            const newAncestors = [...ancestors, chapter];
+            if (chapter.href === currentHref) {
+                // Добавляем найденных родителей
+                parents.push(...newAncestors);
+                return true;
+            }
+
+            // Если у главы есть вложенные, ищем в них
+            if (chapter.children && chapter.children.length > 0) {
+                const found = findChapter(chapter.children, currentHref, newAncestors);
+                if (found) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    findChapter(chapters, href);
+    return parents;
+};

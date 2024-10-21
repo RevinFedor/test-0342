@@ -48,6 +48,8 @@ const useEPUB = (bookFile: Blob | null) => {
                         })
                     );
                     setImages(imageMap);
+
+                    
                 } catch (err) {
                     console.error('Ошибка при загрузке EPUB:', err);
                     setError(err.message);
