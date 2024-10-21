@@ -5,7 +5,6 @@ import DOMPurify from 'dompurify';
 import { parseNavPoints, getFullImagePath } from '../model/epubUtils'; // Вынесите функции в shared/utils
 import { Chapter } from '../model/types';
 
-//! Загрузка EPUB и парсинг TOC  на главы
 const useEPUB = (bookFile: Blob | null) => {
     const [chapters, setChapters] = useState<Chapter[]>([]);
     const [cssContent, setCssContent] = useState<string>('');
@@ -47,9 +46,8 @@ const useEPUB = (bookFile: Blob | null) => {
                             imageMap[file.name] = dataUri;
                         })
                     );
-                    setImages(imageMap);
 
-                    
+                    setImages(imageMap);
                 } catch (err) {
                     console.error('Ошибка при загрузке EPUB:', err);
                     setError(err.message);

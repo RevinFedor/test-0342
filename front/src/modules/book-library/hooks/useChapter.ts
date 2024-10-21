@@ -42,27 +42,32 @@ const useChapter = ({ bookFile, href, images }: UseChapterProps) => {
                 if (body) {
                     const imagesInContent = body.querySelectorAll('img, image');
                     imagesInContent.forEach((imgElement) => {
-                        if (imgElement.tagName.toLowerCase() === 'img') {
-                            const src = imgElement.getAttribute('src');
-                            if (src) {
-                                const imagePath = getFullImagePath(baseHref, src);
-                                const imageUri = images[imagePath] || images[src];
-                                if (imageUri) {
-                                    imgElement.setAttribute('src', imageUri);
-                                } else {
-                                    console.warn(`Image not found: ${src}`);
+                        const src = imgElement.getAttribute('src') || imgElement.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+                        if (src) {
+                            const imagePath = getFullImagePath(baseHref, src);
+                            const imageUri = images[imagePath] || images[src];
+                            console.log('Image src:', src);
+                            console.log('Full image path:', imagePath);
+                            console.log('Image URI found:', imageUri);
+
+                            // Проверяем, является ли элемент HTML-картинкой (<img>) или SVG-картинкой (<image>),
+                            // и устанавливаем правильный атрибут для источника изображения (src для HTML и href для SVG).
+                            if (imageUri) {
+                                if (imgElement instanceof HTMLImageElement || imgElement instanceof SVGImageElement) {
+                                    if (imgElement instanceof HTMLImageElement) {
+                                        imgElement.setAttribute('src', imageUri);
+                                    } else {
+                                        imgElement.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imageUri);
+                                    }
+
+                                    imgElement.style.display = 'block';
+                                    imgElement.style.marginLeft = 'auto';
+                                    imgElement.style.marginRight = 'auto';
+                                    imgElement.style.maxWidth = '100%';
+                                    imgElement.style.height = 'auto';
                                 }
-                            }
-                        } else if (imgElement.tagName.toLowerCase() === 'image') {
-                            const hrefAttr = imgElement.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
-                            if (hrefAttr) {
-                                const imagePath = getFullImagePath(baseHref, hrefAttr);
-                                const imageUri = images[imagePath] || images[hrefAttr];
-                                if (imageUri) {
-                                    imgElement.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imageUri);
-                                } else {
-                                    console.warn(`Image not found: ${hrefAttr}`);
-                                }
+                            } else {
+                                console.warn(`Image not found: ${src}`);
                             }
                         }
                     });

@@ -80,7 +80,7 @@ const BookReader: React.FC = () => {
     return (
         <div className="book-reader" style={{ position: 'relative' }}>
             {/* Внедрение CSS-стилей */}
-            {cssContent && <style>{cssContent}</style>}
+            {cssContent && <style>{cssContent} </style>}
 
             {/* Всплывающее окно с оглавлением */}
             <ChaptersPopup

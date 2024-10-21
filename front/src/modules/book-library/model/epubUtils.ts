@@ -28,14 +28,21 @@ export const parseNavPoints = (navPoints: NodeListOf<Element>, currentLevel: num
 };
 
 export const getFullImagePath = (baseHref: string, src: string): string => {
-    if (src.startsWith('/')) {
-        return src.substring(1);
-    } else {
-        const chapterPath = baseHref.substring(0, baseHref.lastIndexOf('/') + 1);
-        return chapterPath + src;
+    // If the src is already an absolute path like 'OPS/images/...'
+    if (src.startsWith('OPS/')) {
+        return src;
     }
-};
 
+    // If the src is relative, ensure that 'OPS/' is prepended if it's missing
+    const chapterPath = baseHref.substring(0, baseHref.lastIndexOf('/') + 1);
+    const fullPath = chapterPath + src;
+
+    if (!fullPath.startsWith('OPS/')) {
+        return 'OPS/' + fullPath;
+    }
+
+    return fullPath;
+};
 
 
 //! Функция для рекурсивного извлечения всех глав, включая вложенные
