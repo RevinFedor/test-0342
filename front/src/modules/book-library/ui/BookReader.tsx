@@ -40,7 +40,7 @@ const BookReader: React.FC = () => {
         chapters,
     });
 
-    console.log(duplicates);
+
 
     //! настройка скролла для popup оглавления
     const handleWheel = (event: WheelEvent) => {

@@ -72,11 +72,11 @@ const useChapterDuplicate = ({ bookFile, chapters }: useChapterDuplicateProps): 
 
                 setDuplicates(duplicatesFound);
 
-                if (Object.keys(duplicatesFound).length === 0) {
-                    console.log('Дублирующиеся главы не найдены.');
-                } else {
-                    console.log('Найдены дублирующиеся главы:', duplicatesFound);
-                }
+                // if (Object.keys(duplicatesFound).length === 0) {
+                //     console.log('Дублирующиеся главы не найдены.');
+                // } else {
+                //     console.log('Найдены дублирующиеся главы:', duplicatesFound);
+                // }
             } catch (err: any) {
                 console.error('Ошибка при поиске дублирующихся глав:', err);
                 setError(err.message || 'Неизвестная ошибка');
