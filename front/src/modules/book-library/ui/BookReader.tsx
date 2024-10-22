@@ -42,7 +42,7 @@ const BookReader: React.FC = () => {
         chapters,
     });
 
-    console.log(duplicates);
+
 
     //! Обработка событий колесика для popup оглавления
     const handleWheel = (event: WheelEvent) => {
