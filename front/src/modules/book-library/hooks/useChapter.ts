@@ -4,18 +4,6 @@ import JSZip from 'jszip';
 import DOMPurify from 'dompurify';
 import { getFullImagePath } from '../model/utils';
 
-interface UseChapterProps {
-    bookFile: ArrayBuffer | null;
-    href: string;
-    knownChapterTitles: any;
-    images: Record<string, string>;
-}
-
-interface HeadingInfo {
-    tag: string;
-    text: string;
-    index: number;
-}
 
 /**
  * Computes the Levenshtein distance between two strings.
@@ -52,21 +40,76 @@ export const levenshteinDistance = (a: string, b: string): number => {
     return matrix[bn][an];
 };
 
-const useChapter = ({ bookFile, href, images, knownChapterTitles }: UseChapterProps) => {
+/**
+ * Calculates similarity between two strings using normalized Levenshtein distance.
+ * @param a First string
+ * @param b Second string
+ * @returns Similarity score between 0 and 1
+ */
+const calculateSimilarity = (a: string, b: string): number => {
+    const distance = levenshteinDistance(a, b);
+    const maxLen = Math.max(a.length, b.length);
+    return maxLen === 0 ? 1 : 1 - distance / maxLen;
+};
+
+const getHashForChapter = (href: string, duplicates: Record<string, string[]>): string | null => {
+    for (const [hash, chapterList] of Object.entries(duplicates)) {
+        if (chapterList.includes(href)) {
+            return hash; // Возвращаем хеш, если глава найдена в списке дубликатов
+        }
+    }
+    return null; // Если глава не найдена
+};
+
+
+
+interface UseChapterProps {
+    bookFile: ArrayBuffer | null;
+    href: string;
+    images: Record<string, string>;
+    knownChapterTitles: any;
+    duplicates: any;
+}
+
+interface HeadingInfo {
+    tag: string;
+    text: string;
+    index: number;
+}
+
+
+const useChapter = ({ bookFile, href, images, knownChapterTitles, duplicates }: UseChapterProps) => {
     const [content, setContent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [headings, setHeadings] = useState<HeadingInfo[]>([]); // Новое состояние для заголовков
+    const [headings, setHeadings] = useState<HeadingInfo[]>([]); // Новое состояние для заголовков (div блоки в разметке )
+    const [previousChapter, setPreviousChapter] = useState<string | null>(null); // Состояние для предыдущей главы
+    // для обработку для дублирующейся главы надо отдельно сдлетаь 
+    const [isLoading, setIsLoading] = useState<boolean>(false); // New loading state
 
     useEffect(() => {
         if (!bookFile) {
             return;
         }
         const loadChapter = async () => {
+            setIsLoading(true); // Set loading to true at the start
             try {
-                console.log('Loading chapter with href:', href);
+                //! console.log('Loading chapter with href:', href);
                 const zip = await JSZip.loadAsync(bookFile);
                 const baseHref = href.split('#')[0];
                 let chapterFile = zip.file(`OPS/${baseHref}`);
+
+                //! Пропускаем обработку для дублирующейся главы
+                const currentHash = getHashForChapter(href, duplicates);
+                if (currentHash) {
+                    const duplicateChapters = duplicates[currentHash];
+                    console.log(duplicateChapters);
+
+                    if (duplicateChapters.includes(previousChapter)) {
+                        setIsLoading(false); // Set loading to false before returning
+                        return;
+                    }
+                }
+
                 if (!chapterFile) {
                     const availableFiles = Object.keys(zip.files);
                     const similarFile = availableFiles.find((file) => file.toLowerCase() === baseHref.toLowerCase());
@@ -113,21 +156,19 @@ const useChapter = ({ bookFile, href, images, knownChapterTitles }: UseChapterPr
                         }
                     });
 
-                    
-
-
-
-                    // Extract and log headings
+                    //! логи на добавление аттрибудто заголовка и парсинга
+                    //! вся нагрузка тут
                     extractAndLogHeadings(doc.body, knownChapterTitles);
-                   setContent(doc.body.outerHTML);
-
-                    console.log(doc.body);
+                    setContent(doc.body.outerHTML);
+                    setPreviousChapter(href);
                 } else {
                     throw new Error('The <body> tag was not found in the chapter content.');
                 }
             } catch (err: any) {
                 console.error('Error loading chapter content:', err);
                 setError(err.message);
+            } finally {
+                setIsLoading(false); // Ensure loading is false at the end
             }
         };
 
@@ -136,10 +177,6 @@ const useChapter = ({ bookFile, href, images, knownChapterTitles }: UseChapterPr
         }
     }, [href, bookFile, images]);
 
-    /**
-     * Функция для извлечения заголовков из DOM и логирования их.
-     * @param body DOM элемент <body>
-     */
     /**
      * Function to extract headings from the DOM and log them.
      * @param body DOM element <body>
@@ -210,19 +247,7 @@ const useChapter = ({ bookFile, href, images, knownChapterTitles }: UseChapterPr
         }
     };
 
-    /**
-     * Calculates similarity between two strings using normalized Levenshtein distance.
-     * @param a First string
-     * @param b Second string
-     * @returns Similarity score between 0 and 1
-     */
-    const calculateSimilarity = (a: string, b: string): number => {
-        const distance = levenshteinDistance(a, b);
-        const maxLen = Math.max(a.length, b.length);
-        return maxLen === 0 ? 1 : 1 - distance / maxLen;
-    };
-
-    return { content, error, headings };
+    return { content, error, headings, isLoading }; // Return isLoading
 };
 
 export default useChapter;
