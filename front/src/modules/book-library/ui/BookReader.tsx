@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGetBookByIdQuery } from '../model/booksApiSlice';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
@@ -10,10 +10,27 @@ import PagedText from './PagedText';
 import { flattenChapters, getParentChapters } from '../model/utils';
 import useChapterDuplicate from '../hooks/useChapterDuplicate';
 
+const extractChapterTitles = (chapters) => {
+    const titles = [];
+
+    const extractTitlesRecursively = (chapterList) => {
+        chapterList.forEach((chapter) => {
+            titles.push(chapter.label); // Добавляем заголовок текущего уровня
+            if (chapter.children && chapter.children.length > 0) {
+                extractTitlesRecursively(chapter.children); // Рекурсивно обрабатываем дочерние элементы
+            }
+        });
+    };
+
+    extractTitlesRecursively(chapters);
+
+    return titles;
+};
+
 const BookReader: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [currentChapter, setCurrentChapter] = useState<string>(null);
-    const [isScrollingInPopup, setIsScrollingInPopup] = useState(false); // Новый state для отслеживания скролла внутри оглавления
+    const [isScrollingInPopup, setIsScrollingInPopup] = useState(false);
 
     const { data: bookFile, isLoading: isLoadingContent, error } = useGetBookByIdQuery(id);
     const { chapters, cssContent, images } = useEPUB(bookFile);
@@ -24,11 +41,25 @@ const BookReader: React.FC = () => {
         }
     }, [chapters, currentChapter]);
 
-    const { content } = useChapter({
+    const knownChapterTitles = extractChapterTitles(chapters);
+
+    const { content, headings } = useChapter({
         bookFile,
         href: currentChapter,
         images,
+        knownChapterTitles, // Pass known chapter titles
     });
+    console.log(content);
+    
+
+    // Function to handle heading encountered
+    const handleHeadingEncountered = (chapterTitle: string) => {
+        const flatChapters = flattenChapters(chapters);
+        const chapter = flatChapters.find((ch) => ch.label === chapterTitle);
+        if (chapter && chapter.href !== currentChapter) {
+            setCurrentChapter(chapter.href);
+        }
+    };
 
     //! Используем хук для поиска дублирующихся глав
     const {
@@ -39,8 +70,6 @@ const BookReader: React.FC = () => {
         bookFile,
         chapters,
     });
-
-
 
     //! настройка скролла для popup оглавления
     const handleWheel = (event: WheelEvent) => {
@@ -121,7 +150,10 @@ const BookReader: React.FC = () => {
             </div>
 
             {/* Основное содержимое книги */}
-            <PagedText text={content} onNextChapter={handleNext} onPrevChapter={handlePrev} />
+            <PagedText
+                text={content}
+                onHeadingEncountered={handleHeadingEncountered} // Pass the handler
+            />
         </div>
     );
 };
