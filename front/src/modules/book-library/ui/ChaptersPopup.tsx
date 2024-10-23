@@ -22,6 +22,7 @@ interface ChaptersPopupProps {
 export const ChaptersPopup = ({ mockChapters, currentChapter, setCurrentChapter, setIsScrollingInPopup }: ChaptersPopupProps) => {
     const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
 
+
     const toggleChapter = (href: string) => {
         setExpandedChapters((prev) => {
             const newSet = new Set(prev);
