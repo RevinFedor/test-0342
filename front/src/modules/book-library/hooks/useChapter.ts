@@ -83,7 +83,7 @@ const useChapter = ({ bookFile, href, images, knownChapterTitles, duplicates }: 
     const [error, setError] = useState<string | null>(null);
     const [headings, setHeadings] = useState<HeadingInfo[]>([]); // Новое состояние для заголовков (div блоки в разметке )
     const [previousChapter, setPreviousChapter] = useState<string | null>(null); // Состояние для предыдущей главы
-    // для обработку для дублирующейся главы надо отдельно сдлетаь 
+    // для обработкb дублирующейся главы надо отдельно сдлетаь 
     const [isLoading, setIsLoading] = useState<boolean>(false); // New loading state
 
     useEffect(() => {

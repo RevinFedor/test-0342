@@ -47,14 +47,14 @@ const BookList: React.FC<BookListProps> = ({ books, onBookClick }) => {
     };
 
     return (
-        <div className="flex flex-wrap gap-8">
+        <div className="flex flex-wrap justify-between">
             {books.map((book) => (
                 <div key={book._id} className="relative group cursor-pointer">
                     <div className="">
                         <div className="p-4 w-[185px] text-center">
                             {/* Обложка книги */}
                             <div onClick={() => onBookClick(book)}>
-                                <div className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                                <div className=" shadow-lg hover:shadow-xl transition-shadow duration-300">
                                     {' '}
                                     {book.coverUrl ? (
                                         <img
