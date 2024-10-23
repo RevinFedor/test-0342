@@ -32,6 +32,7 @@ const BookReader: React.FC = () => {
     const [currentChapter, setCurrentChapter] = useState<string>(null);
     const [isScrollingInPopup, setIsScrollingInPopup] = useState(false);
     const [knownChapterTitles, setKnownChapterTitles] = useState<string[]>([]); // State to store chapter titles
+    const [initialPage, setInitialPage] = useState<number>(0); // New state for initial page
 
     const { data: bookFile, isLoading: isLoadingQuery, error } = useGetBookByIdQuery(id);
     const { chapters, cssContent, images } = useEPUB(bookFile);
@@ -95,21 +96,22 @@ const BookReader: React.FC = () => {
 
     //!логика переключения глав
 
-    // Логика переключения глав с учётом вложенности
-    const handleNext = () => {
-        const flatChapters = flattenChapters(chapters); // Все главы в одном массиве
+    const handleNextChapter = () => {
+        const flatChapters = flattenChapters(chapters);
         const currentChapterIndex = flatChapters.findIndex((ch) => ch.href === currentChapter);
 
         if (currentChapterIndex !== -1 && currentChapterIndex < flatChapters.length - 1) {
+            setInitialPage(0); // Start at first page for the next chapter
             setCurrentChapter(flatChapters[currentChapterIndex + 1].href);
         }
     };
 
-    const handlePrev = () => {
-        const flatChapters = flattenChapters(chapters); // Все главы в одном массиве
+    const handlePrevChapter = () => {
+        const flatChapters = flattenChapters(chapters);
         const currentChapterIndex = flatChapters.findIndex((ch) => ch.href === currentChapter);
 
         if (currentChapterIndex > 0) {
+            setInitialPage(-1); // Indicate to start at the last page
             setCurrentChapter(flatChapters[currentChapterIndex - 1].href);
         }
     };
@@ -138,7 +140,7 @@ const BookReader: React.FC = () => {
             />
 
             <div className="page-navigation flex justify-center mb-2 relative">
-                <button onClick={handlePrev} disabled={!currentChapter} className="nav-button absolute top-7 right-[50%]">
+                <button onClick={handlePrevChapter} disabled={!currentChapter} className="nav-button absolute top-7 right-[50%]">
                     <ArrowLeft />
                 </button>
                 {/* Отображение текущей главы */}
@@ -149,7 +151,7 @@ const BookReader: React.FC = () => {
                         </span>
                     ))}
                 </div>
-                <button onClick={handleNext} disabled={!currentChapter} className="nav-button absolute top-7 left-[50%]">
+                <button onClick={handleNextChapter} disabled={!currentChapter} className="nav-button absolute top-7 left-[50%]">
                     <ArrowRight />
                 </button>
             </div>
@@ -157,7 +159,11 @@ const BookReader: React.FC = () => {
             {/* Основное содержимое книги */}
             <PagedText
                 text={content}
-                onHeadingEncountered={handleHeadingEncountered} // Pass the handler
+                onHeadingEncountered={handleHeadingEncountered}
+                onNextChapter={handleNextChapter} // Add this prop
+                onPrevChapter={handlePrevChapter} // Add this prop
+                initialPage={initialPage} // Pass the initialPage prop
+                isLoadingUseChapter={isLoadingUseChapter}
             />
         </div>
     );

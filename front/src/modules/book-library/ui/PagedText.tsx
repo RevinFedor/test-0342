@@ -90,7 +90,15 @@ interface Page {
     right: string;
 }
 
-export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingEncountered, }: PagedTextProps) {
+export default function PagedText({
+    text = '',
+    maxColumnHeight = 700,
+    onHeadingEncountered,
+    onNextChapter,
+    onPrevChapter,
+    initialPage = 0,
+    isLoadingUseChapter,
+}: PagedTextProps) {
     const [pages, setPages] = useState<Page[]>([]);
     const [pageHeadings, setPageHeadings] = useState<Record<number, string>>({});
     const [currentPage, setCurrentPage] = useState(0);
@@ -115,7 +123,6 @@ export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingE
             // Collect all elements
             const allElements: HTMLElement[] = [];
 
-            
             tempDiv.childNodes.forEach((child) => collectElements(child, allElements));
 
             const pagesArray: Page[] = [];
@@ -124,8 +131,6 @@ export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingE
             let currentColumnHeight = [0, 0]; // [leftHeight, rightHeight]
             let currentColumn = 0; // 0 - left, 1 - right
             let currentPageIndex = 0;
-
-            
 
             for (const element of allElements) {
                 const elHeight = estimateElementHeight(element);
@@ -147,8 +152,6 @@ export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingE
                     }
                 }
 
-
-                
                 // Check for data-chapter-title attribute
                 if (element.hasAttribute('data-chapter-title')) {
                     const chapterTitle = element.getAttribute('data-chapter-title');
@@ -156,9 +159,8 @@ export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingE
                     if (!pageHeadings[currentPageIndex]) {
                         pageHeadings[currentPageIndex] = chapterTitle!;
                     }
-                } else{
+                } else {
                     console.log('Attribute not Found');
-                    
                 }
 
                 // Add element to current column
@@ -179,14 +181,18 @@ export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingE
             .then(({ pages: pagesResult, pageHeadings: headingsResult }) => {
                 setPages(pagesResult);
                 setPageHeadings(headingsResult);
-                setCurrentPage(0);
+                if (initialPage === -1) {
+                    setCurrentPage(pagesResult.length - 1); // Set to last page
+                } else {
+                    setCurrentPage(initialPage || 0); // Set to initialPage or default to 0
+                }
                 isSplittingRef.current = false;
             })
             .catch((error) => {
                 console.error('Error splitting content:', error);
                 isSplittingRef.current = false;
             });
-    }, [text, maxColumnHeight]);
+    }, [text, maxColumnHeight, initialPage]); // Include initialPage in dependencies
 
     // Effect to detect page changes and notify about headings
     useEffect(() => {
@@ -196,14 +202,21 @@ export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingE
     }, [currentPage, pageHeadings]);
 
     // Navigation functions
-    const goToPreviousPage = () => {
-        setCurrentPage((prev) => Math.max(0, prev - 1));
-    };
-
     const goToNextPage = () => {
-        setCurrentPage((prev) => Math.min(pages.length - 1, prev + 1));
+        if (currentPage === pages.length - 1) {
+            onNextChapter(); // Call the next chapter function
+        } else {
+            setCurrentPage((prev) => Math.min(pages.length - 1, prev + 1));
+        }
     };
 
+    const goToPreviousPage = () => {
+        if (currentPage === 0) {
+            onPrevChapter(); // Call the previous chapter function
+        } else {
+            setCurrentPage((prev) => Math.max(0, prev - 1));
+        }
+    };
     if (pages.length === 0) {
         return <div className="text-center p-4">No text to display.</div>;
     }
@@ -211,17 +224,17 @@ export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingE
     return (
         <div className="mx-auto p-10">
             <div className="flex justify-between items-center mb-4">
-                <Button onClick={goToPreviousPage} disabled={currentPage === 0} variant="outline">
+                <Button onClick={goToPreviousPage} variant="outline">
                     <ChevronLeft className="mr-2 h-4 w-4" /> Previous
                 </Button>
                 <span>
                     Page {currentPage + 1} of {pages.length}
                 </span>
-                <Button onClick={goToNextPage} disabled={currentPage === pages.length - 1} variant="outline">
+                <Button onClick={goToNextPage} variant="outline">
                     Next <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
             </div>
-            {pages.length > 0 && (
+            {pages.length > 0 && !isLoadingUseChapter && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
                     {/* Left Column */}
                     <div className="border px-4 rounded">{parse(pages[currentPage].left || '')}</div>
