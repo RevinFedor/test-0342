@@ -12,6 +12,8 @@ const useEPUB = (bookFile: Blob | null) => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+
+        
         const loadEpub = async () => {
             if (bookFile) {
                 try {

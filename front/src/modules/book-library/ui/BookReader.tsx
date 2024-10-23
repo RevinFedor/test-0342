@@ -31,8 +31,9 @@ const BookReader: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [currentChapter, setCurrentChapter] = useState<string>(null);
     const [isScrollingInPopup, setIsScrollingInPopup] = useState(false);
+    const [knownChapterTitles, setKnownChapterTitles] = useState<string[]>([]); // State to store chapter titles
 
-    const { data: bookFile, isLoading: isLoadingContent, error } = useGetBookByIdQuery(id);
+    const { data: bookFile, isLoading: isLoadingQuery, error } = useGetBookByIdQuery(id);
     const { chapters, cssContent, images } = useEPUB(bookFile);
 
     useEffect(() => {
@@ -41,25 +42,12 @@ const BookReader: React.FC = () => {
         }
     }, [chapters, currentChapter]);
 
-    const knownChapterTitles = extractChapterTitles(chapters);
-
-    const { content, headings } = useChapter({
-        bookFile,
-        href: currentChapter,
-        images,
-        knownChapterTitles, // Pass known chapter titles
-    });
-    console.log(content);
-    
-
-    // Function to handle heading encountered
-    const handleHeadingEncountered = (chapterTitle: string) => {
-        const flatChapters = flattenChapters(chapters);
-        const chapter = flatChapters.find((ch) => ch.label === chapterTitle);
-        if (chapter && chapter.href !== currentChapter) {
-            setCurrentChapter(chapter.href);
+    //! Call extractChapterTitles only once on initial load
+    useEffect(() => {
+        if (chapters.length > 0) {
+            setKnownChapterTitles(extractChapterTitles(chapters)); // Set titles once
         }
-    };
+    }, [chapters]); // Empty dependency array ensures this runs only once
 
     //! Используем хук для поиска дублирующихся глав
     const {
@@ -70,6 +58,23 @@ const BookReader: React.FC = () => {
         bookFile,
         chapters,
     });
+
+    const { content, isLoading: isLoadingUseChapter } = useChapter({
+        bookFile,
+        href: currentChapter,
+        images,
+        knownChapterTitles, // Pass known chapter titles
+        duplicates,
+    });
+
+    // Function to handle heading encountered
+    const handleHeadingEncountered = (chapterTitle: string) => {
+        const flatChapters = flattenChapters(chapters);
+        const chapter = flatChapters.find((ch) => ch.label === chapterTitle);
+        if (chapter && chapter.href !== currentChapter) {
+            setCurrentChapter(chapter.href);
+        }
+    };
 
     //! настройка скролла для popup оглавления
     const handleWheel = (event: WheelEvent) => {
@@ -111,7 +116,7 @@ const BookReader: React.FC = () => {
 
     const parentChapters = getParentChapters(chapters, currentChapter || '');
 
-    if (isLoadingContent) {
+    if (isLoadingQuery) {
         return <Loader2 />;
     }
 

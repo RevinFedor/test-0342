@@ -90,14 +90,14 @@ interface Page {
     right: string;
 }
 
-export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingEncountered }: PagedTextProps) {
+export default function PagedText({ text = '', maxColumnHeight = 700, onHeadingEncountered, }: PagedTextProps) {
     const [pages, setPages] = useState<Page[]>([]);
     const [pageHeadings, setPageHeadings] = useState<Record<number, string>>({});
     const [currentPage, setCurrentPage] = useState(0);
     const isSplittingRef = useRef(false); // Prevent duplicate splitting
 
     useEffect(() => {
-        if (!text) {    
+        if (!text) {
             setPages([]);
             return;
         }
