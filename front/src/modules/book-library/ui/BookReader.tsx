@@ -1,6 +1,4 @@
-// ui/BookReader.tsx
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGetBookByIdQuery } from '../model/booksApiSlice';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
@@ -12,12 +10,31 @@ import PagedText from './PagedText';
 import { flattenChapters, getParentChapters } from '../model/utils';
 import useChapterDuplicate from '../hooks/useChapterDuplicate';
 
+const extractChapterTitles = (chapters) => {
+    const titles = [];
+
+    const extractTitlesRecursively = (chapterList) => {
+        chapterList.forEach((chapter) => {
+            titles.push(chapter.label); // Добавляем заголовок текущего уровня
+            if (chapter.children && chapter.children.length > 0) {
+                extractTitlesRecursively(chapter.children); // Рекурсивно обрабатываем дочерние элементы
+            }
+        });
+    };
+
+    extractTitlesRecursively(chapters);
+
+    return titles;
+};
+
 const BookReader: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [currentChapter, setCurrentChapter] = useState<string>(null);
-    const [isScrollingInPopup, setIsScrollingInPopup] = useState(false); // Отслеживаем скролл в popup
+    const [isScrollingInPopup, setIsScrollingInPopup] = useState(false);
+    const [knownChapterTitles, setKnownChapterTitles] = useState<string[]>([]); // State to store chapter titles
+    const [initialPage, setInitialPage] = useState<number>(0); // New state for initial page
 
-    const { data: bookFile, isLoading: isLoadingContent, error } = useGetBookByIdQuery(id);
+    const { data: bookFile, isLoading: isLoadingQuery, error } = useGetBookByIdQuery(id);
     const { chapters, cssContent, images } = useEPUB(bookFile);
 
     useEffect(() => {
@@ -26,11 +43,12 @@ const BookReader: React.FC = () => {
         }
     }, [chapters, currentChapter]);
 
-    const { content, error: chapterError } = useChapter({
-        bookFile,
-        href: currentChapter,
-        images,
-    });
+    //! Call extractChapterTitles only once on initial load
+    useEffect(() => {
+        if (chapters.length > 0) {
+            setKnownChapterTitles(extractChapterTitles(chapters)); // Set titles once
+        }
+    }, [chapters]); // Empty dependency array ensures this runs only once
 
     //! Используем хук для поиска дублирующихся глав
     const {
@@ -42,6 +60,22 @@ const BookReader: React.FC = () => {
         chapters,
     });
 
+    const { content, isLoading: isLoadingUseChapter } = useChapter({
+        bookFile,
+        href: currentChapter,
+        images,
+        knownChapterTitles, // Pass known chapter titles
+        duplicates,
+    });
+
+    // Function to handle heading encountered
+    const handleHeadingEncountered = (chapterTitle: string) => {
+        const flatChapters = flattenChapters(chapters);
+        const chapter = flatChapters.find((ch) => ch.label === chapterTitle);
+        if (chapter && chapter.href !== currentChapter) {
+            setCurrentChapter(chapter.href);
+        }
+    };
 
 
     //! Обработка событий колесика для popup оглавления
@@ -65,29 +99,29 @@ const BookReader: React.FC = () => {
 
     //! Логика переключения глав
 
-    // Функция для перехода на следующую главу
-    const handleNext = () => {
-        const flatChapters = flattenChapters(chapters); // Плоский список всех глав
+    const handleNextChapter = () => {
+        const flatChapters = flattenChapters(chapters);
         const currentChapterIndex = flatChapters.findIndex((ch) => ch.href === currentChapter);
 
         if (currentChapterIndex !== -1 && currentChapterIndex < flatChapters.length - 1) {
+            setInitialPage(0); // Start at first page for the next chapter
             setCurrentChapter(flatChapters[currentChapterIndex + 1].href);
         }
     };
 
-    // Функция для перехода на предыдущую главу
-    const handlePrev = () => {
-        const flatChapters = flattenChapters(chapters); // Плоский список всех глав
+    const handlePrevChapter = () => {
+        const flatChapters = flattenChapters(chapters);
         const currentChapterIndex = flatChapters.findIndex((ch) => ch.href === currentChapter);
 
         if (currentChapterIndex > 0) {
+            setInitialPage(-1); // Indicate to start at the last page
             setCurrentChapter(flatChapters[currentChapterIndex - 1].href);
         }
     };
 
     const parentChapters = getParentChapters(chapters, currentChapter || '');
 
-    if (isLoadingContent) {
+    if (isLoadingQuery) {
         return <Loader2 />;
     }
 
@@ -95,9 +129,7 @@ const BookReader: React.FC = () => {
         return <div>Error loading book: {error?.message}</div>;
     }
 
-    if (chapterError) {
-        return <div>Error loading chapter: {chapterError}</div>;
-    }
+    console.log('content-----------------------');
 
     return (
         <div className="book-reader" style={{ position: 'relative' }}>
@@ -112,28 +144,23 @@ const BookReader: React.FC = () => {
                 setIsScrollingInPopup={setIsScrollingInPopup} // Передаём состояние скролла
             />
 
-            <div className="page-navigation flex justify-center mb-2 relative">
-                <button onClick={handlePrev} disabled={!currentChapter} className="nav-button absolute top-7 right-[50%]">
-                    <ArrowLeft />
-                </button>
-                {/* Отображение текущей главы */}
-                <div className="current-chapter-title text-[12px] font-bold" style={{ margin: '0 20px', textAlign: 'center' }}>
-                    {parentChapters.map((chapter, index) => (
-                        <span key={index}>
-                            {chapter.label} {index < parentChapters.length - 1 ? ' » ' : ''} {chapter.href}
-                        </span>
-                    ))}
-                </div>
-                <button onClick={handleNext} disabled={!currentChapter} className="nav-button absolute top-7 left-[50%]">
-                    <ArrowRight />
-                </button>
+            {/* Отображение текущей главы */}
+            <div className="current-chapter-title text-[12px] font-bold" style={{ margin: '0 20px', textAlign: 'center' }}>
+                {parentChapters.map((chapter, index) => (
+                    <span key={index}>
+                        {chapter.label} {index < parentChapters.length - 1 ? ' » ' : ''}
+                    </span>
+                ))}
             </div>
 
             {/* Основное содержимое книги */}
             <PagedText
                 text={content}
-                onNextChapter={handleNext}
-                onPrevChapter={handlePrev}
+                onHeadingEncountered={handleHeadingEncountered}
+                onNextChapter={handleNextChapter} // Add this prop
+                onPrevChapter={handlePrevChapter} // Add this prop
+                initialPage={initialPage} // Pass the initialPage prop
+                isLoadingUseChapter={isLoadingUseChapter}
             />
         </div>
     );
