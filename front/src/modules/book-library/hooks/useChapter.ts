@@ -4,7 +4,6 @@ import JSZip from 'jszip';
 import DOMPurify from 'dompurify';
 import { getFullImagePath } from '../model/utils';
 
-
 /**
  * Computes the Levenshtein distance between two strings.
  * @param a First string
@@ -61,8 +60,6 @@ const getHashForChapter = (href: string, duplicates: Record<string, string[]>): 
     return null; // Если глава не найдена
 };
 
-
-
 interface UseChapterProps {
     bookFile: ArrayBuffer | null;
     href: string;
@@ -77,13 +74,12 @@ interface HeadingInfo {
     index: number;
 }
 
-
 const useChapter = ({ bookFile, href, images, knownChapterTitles, duplicates }: UseChapterProps) => {
     const [content, setContent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [headings, setHeadings] = useState<HeadingInfo[]>([]); // Новое состояние для заголовков (div блоки в разметке )
     const [previousChapter, setPreviousChapter] = useState<string | null>(null); // Состояние для предыдущей главы
-    // для обработкb дублирующейся главы надо отдельно сдлетаь 
+    // для обработкb дублирующейся главы надо отдельно сдлетаь
     const [isLoading, setIsLoading] = useState<boolean>(false); // New loading state
 
     useEffect(() => {
@@ -91,7 +87,6 @@ const useChapter = ({ bookFile, href, images, knownChapterTitles, duplicates }: 
             return;
         }
         const loadChapter = async () => {
-            setIsLoading(true); // Set loading to true at the start
             try {
                 //! console.log('Loading chapter with href:', href);
                 const zip = await JSZip.loadAsync(bookFile);
@@ -109,6 +104,7 @@ const useChapter = ({ bookFile, href, images, knownChapterTitles, duplicates }: 
                         return;
                     }
                 }
+                setIsLoading(true); // Set loading to true at the start
 
                 if (!chapterFile) {
                     const availableFiles = Object.keys(zip.files);
@@ -128,7 +124,21 @@ const useChapter = ({ bookFile, href, images, knownChapterTitles, duplicates }: 
                 const doc = parser.parseFromString(contentFile, 'application/xhtml+xml');
                 const body = doc.body;
 
+                // Функция для рекурсивного удаления всех &nbsp; из текста элементов
+                const removeNbsp = (element: HTMLElement) => {
+                    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+                    let node;
+                    while ((node = walker.nextNode())) {
+                        if (node.nodeValue) {
+                            node.nodeValue = node.nodeValue.replace(/\u00A0/g, ' '); // Заменяем &nbsp; символ (U+00A0) на обычный пробел
+                        }
+                    }
+                };
+
                 if (body) {
+                    // Заменяем неразрывные пробелы внутри содержимого <body>
+                    removeNbsp(body);
+
                     const imagesInContent = body.querySelectorAll('img, image');
                     imagesInContent.forEach((imgElement) => {
                         const src = imgElement.getAttribute('src') || imgElement.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
@@ -159,7 +169,8 @@ const useChapter = ({ bookFile, href, images, knownChapterTitles, duplicates }: 
                     //! логи на добавление аттрибудто заголовка и парсинга
                     //! вся нагрузка тут
                     extractAndLogHeadings(doc.body, knownChapterTitles);
-                    setContent(doc.body.outerHTML);
+
+                    setContent(doc.body.outerHTML); // Устанавливаем обновленное содержимое с удаленными &nbsp;
                     setPreviousChapter(href);
                 } else {
                     throw new Error('The <body> tag was not found in the chapter content.');

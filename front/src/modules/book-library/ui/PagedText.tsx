@@ -1,88 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/shared/ui/components/ui/button';
-import parse, { domToReact, HTMLReactParserOptions, Element as DomElement } from 'html-react-parser';
-
-// Функция для преобразования строки стилей в объект
-const parseStyle = (styleString: string): React.CSSProperties => {
-    return styleString.split(';').reduce((style: React.CSSProperties, rule) => {
-        const [key, value] = rule.split(':').map((item) => item.trim());
-        if (key && value) {
-            // Преобразование kebab-case в camelCase
-            const camelCaseKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase()) as keyof React.CSSProperties;
-            style[camelCaseKey] = value;
-        }
-        return style;
-    }, {});
-};
-
-//! функция для обработки изображений заранее
-const waitForImages = (container: HTMLElement): Promise<void> => {
-    const images = container.querySelectorAll('img');
-    const promises = Array.from(images).map((img) => {
-        if (img.complete) return Promise.resolve();
-        return new Promise<void>((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-        });
-    });
-    return Promise.all(promises).then(() => {});
-};
-
-//! Рекурсивная функция для сбора всех элементов
-const collectElements = (node: Node, elements: HTMLElement[]) => {
-    if (node.nodeType === Node.ELEMENT_NODE) {
-        const el = node as HTMLElement;
-        // Собираем все блочные элементы
-        if (['P', 'H1', 'H2', 'H3', 'IMG', 'DIV', 'FIGURE', 'SECTION', 'ARTICLE'].includes(el.tagName)) {
-            elements.push(el);
-            // Не рекурсивно обходим детей, если это блочный элемент
-            return;
-        }
-        // Рекурсивно обходим детей для других типов элементов
-        el.childNodes.forEach((child) => collectElements(child, elements));
-    }
-    // Игнорируем текстовые узлы и другие типы узлов
-};
-
-//! Функция для оценки высоты элемента
-const estimateElementHeight = (el: HTMLElement): number => {
-    // Создаём временный контейнер для измерения
-    const tempContainer = document.createElement('div');
-    tempContainer.style.visibility = 'hidden';
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.top = '0';
-    tempContainer.style.left = '0';
-    tempContainer.style.width = '800px'; //! Убедитесь, что это соответствует реальной ширине столбца
-    tempContainer.style.fontSize = '16px'; // Установите соответствующие стили
-    tempContainer.style.lineHeight = '1.5'; // Установите соответствующие стили
-
-    // Клонируем элемент для измерения
-    const clone = el.cloneNode(true) as HTMLElement;
-
-    // Для изображений задаём фиксированные размеры или получаем реальные
-    if (clone.tagName === 'IMG') {
-        const img = clone as HTMLImageElement;
-        if (!img.height || img.height === 0) {
-            // Задаём стандартную высоту, если не задана
-            img.style.height = '200px';
-        }
-        // Устанавливаем ширину, чтобы соответствовать колонке
-        img.style.width = '100%';
-        img.style.objectFit = 'contain';
-        img.style.display = 'block'; // Чтобы убрать пробелы снизу
-    }
-
-    tempContainer.appendChild(clone);
-    document.body.appendChild(tempContainer);
-    const height = tempContainer.offsetHeight;
-    document.body.removeChild(tempContainer);
-    return height;
-};
+import parse from 'html-react-parser';
+import { splitHtmlIntoPages } from '../model/utils';
 
 interface PagedTextProps {
     text?: string;
-    maxColumnHeight?: number; // Максимальная высота столбца в пикселях
+    maxColumnHeight?: number;
+    onHeadingEncountered: (heading: string) => void;
+    onNextChapter: () => void;
+    onPrevChapter: () => void;
+    initialPage?: number;
+    isLoadingUseChapter?: boolean;
 }
 
 interface Page {
@@ -104,86 +33,38 @@ export default function PagedText({
     const [currentPage, setCurrentPage] = useState(0);
     const isSplittingRef = useRef(false); // Prevent duplicate splitting
 
+    // Для управления выделением и отображением кнопки
+    const [selection, setSelection] = useState<{
+        text: string;
+        range: Range | null;
+        rect: DOMRect | null;
+    }>({ text: '', range: null, rect: null });
+    const buttonRef = useRef<HTMLButtonElement>(null);
+
     useEffect(() => {
+        console.log('useEffect: Splitting HTML into pages');
         if (!text) {
+            console.log('No text provided. Setting pages to empty array.');
             setPages([]);
             return;
         }
 
-        if (isSplittingRef.current) return;
+        if (isSplittingRef.current) {
+            console.log('Already splitting. Exiting useEffect.');
+            return;
+        }
         isSplittingRef.current = true;
-
-        const splitHtmlIntoPages = async (html: string, maxHeight: number): Promise<{ pages: Page[]; pageHeadings: Record<number, string> }> => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = html;
-
-            // Wait for images to load
-            await waitForImages(tempDiv);
-
-            // Collect all elements
-            const allElements: HTMLElement[] = [];
-
-            tempDiv.childNodes.forEach((child) => collectElements(child, allElements));
-
-            const pagesArray: Page[] = [];
-            const pageHeadings: Record<number, string> = {};
-            let currentPageContent: Page = { left: '', right: '' };
-            let currentColumnHeight = [0, 0]; // [leftHeight, rightHeight]
-            let currentColumn = 0; // 0 - left, 1 - right
-            let currentPageIndex = 0;
-
-            for (const element of allElements) {
-                const elHeight = estimateElementHeight(element);
-
-                if (elHeight > maxHeight) {
-                    console.warn(`Element <${element.tagName.toLowerCase()}> exceeds max height and will be skipped.`);
-                    continue;
-                }
-
-                if (currentColumnHeight[currentColumn] + elHeight > maxHeight) {
-                    if (currentColumn === 0 && currentColumnHeight[1] === 0) {
-                        currentColumn = 1;
-                    } else {
-                        pagesArray.push(currentPageContent);
-                        currentPageContent = { left: '', right: '' };
-                        currentColumnHeight = [0, 0];
-                        currentColumn = 0;
-                        currentPageIndex++;
-                    }
-                }
-
-                // Check for data-chapter-title attribute
-                if (element.hasAttribute('data-chapter-title')) {
-                    const chapterTitle = element.getAttribute('data-chapter-title');
-                    console.log(`Found heading on page ${currentPageIndex}: ${chapterTitle}`);
-                    if (!pageHeadings[currentPageIndex]) {
-                        pageHeadings[currentPageIndex] = chapterTitle!;
-                    }
-                } else {
-                    console.log('Attribute not Found');
-                }
-
-                // Add element to current column
-                const htmlString = element.outerHTML || element.innerHTML || '';
-                currentPageContent[currentColumn === 0 ? 'left' : 'right'] += htmlString;
-                currentColumnHeight[currentColumn] += elHeight;
-            }
-
-            // Add the last page
-            if (currentPageContent.left || currentPageContent.right) {
-                pagesArray.push(currentPageContent);
-            }
-
-            return { pages: pagesArray, pageHeadings };
-        };
 
         splitHtmlIntoPages(text, maxColumnHeight)
             .then(({ pages: pagesResult, pageHeadings: headingsResult }) => {
+                console.log('splitHtmlIntoPages: Success');
                 setPages(pagesResult);
                 setPageHeadings(headingsResult);
                 if (initialPage === -1) {
+                    console.log(`Setting currentPage to last page: ${pagesResult.length - 1}`);
                     setCurrentPage(pagesResult.length - 1); // Set to last page
                 } else {
+                    console.log(`Setting currentPage to initialPage: ${initialPage || 0}`);
                     setCurrentPage(initialPage || 0); // Set to initialPage or default to 0
                 }
                 isSplittingRef.current = false;
@@ -192,37 +73,202 @@ export default function PagedText({
                 console.error('Error splitting content:', error);
                 isSplittingRef.current = false;
             });
-    }, [text, maxColumnHeight, initialPage]); // Include initialPage in dependencies
+    }, [text, maxColumnHeight, initialPage]);
 
     // Effect to detect page changes and notify about headings
     useEffect(() => {
+        console.log(`useEffect: Current page changed to ${currentPage}`);
         if (pageHeadings[currentPage]) {
+            console.log(`Heading encountered on page ${currentPage}: ${pageHeadings[currentPage]}`);
             onHeadingEncountered(pageHeadings[currentPage]);
         }
     }, [currentPage, pageHeadings]);
 
     // Navigation functions
     const goToNextPage = () => {
+        console.log('Navigating to next page');
         if (currentPage === pages.length - 1) {
+            console.log('Current page is the last page. Triggering onNextChapter.');
             onNextChapter(); // Call the next chapter function
         } else {
-            setCurrentPage((prev) => Math.min(pages.length - 1, prev + 1));
+            setCurrentPage((prev) => {
+                const newPage = Math.min(pages.length - 1, prev + 1);
+                console.log(`Changing page from ${prev} to ${newPage}`);
+                return newPage;
+            });
         }
     };
 
     const goToPreviousPage = () => {
+        console.log('Navigating to previous page');
         if (currentPage === 0) {
+            console.log('Current page is the first page. Triggering onPrevChapter.');
             onPrevChapter(); // Call the previous chapter function
         } else {
-            setCurrentPage((prev) => Math.max(0, prev - 1));
+            setCurrentPage((prev) => {
+                const newPage = Math.max(0, prev - 1);
+                console.log(`Changing page from ${prev} to ${newPage}`);
+                return newPage;
+            });
         }
     };
+
+    // Функция для обработки выделения текста
+    const handleSelectionChange = () => {
+        const sel = window.getSelection();
+        if (sel && sel.toString().trim().length > 0) {
+            const range = sel.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            console.log(`Text selected: "${sel.toString()}"`);
+            console.log('Selection range:', range);
+            console.log('Selection rect:', rect);
+            setSelection({
+                text: sel.toString(),
+                range: range,
+                rect: rect,
+            });
+        } else {
+            console.log('No text selected or selection cleared.');
+            setSelection({ text: '', range: null, rect: null });
+        }
+    };
+
+    useEffect(() => {
+        console.log('Adding event listeners for selection changes');
+        document.addEventListener('mouseup', handleSelectionChange);
+        document.addEventListener('keyup', handleSelectionChange);
+
+        return () => {
+            console.log('Removing event listeners for selection changes');
+            document.removeEventListener('mouseup', handleSelectionChange);
+            document.removeEventListener('keyup', handleSelectionChange);
+        };
+    }, []);
+
+    // Функция для позиционирования кнопки
+    const getButtonStyle = () => {
+        if (selection.rect) {
+            const { top, left, width } = selection.rect;
+            console.log('Calculating button position');
+            return {
+                position: 'absolute' as 'absolute',
+                top: top - 170, // Располагаем кнопку над выделением
+                left: left + width / 2,
+                transform: 'translateX(-50%)',
+                zIndex: 1000,
+            };
+        }
+        return { display: 'none' };
+    };
+
+    // Функция для обработки нажатия на кнопку
+    const handleHighlight = () => {
+        console.log('Button clicked: handleHighlight triggered');
+        if (selection.range) {
+            const containsImage = selection.range.cloneContents().querySelector('img') !== null;
+            if (containsImage) {
+                console.log('Selection contains an image. Skipping highlight.');
+                // Опционально: уведомите пользователя
+                alert('Выделение содержит изображение. Выделение текста не выполнено.');
+                // Очистка выделения
+                window.getSelection()?.removeAllRanges();
+                setSelection({ text: '', range: null, rect: null });
+                return;
+            }
+
+            const selectedText = selection.text;
+            console.log(`Selected text: "${selectedText}"`);
+
+            // Создаём новый HTML с выделением
+            const highlightedText = `<span class="highlight">${selectedText}</span>`;
+
+            // Функция для экранирования специальных символов в строке
+            const escapeRegExp = (string: string) => {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            };
+
+            // Функция для замены выделенного текста в HTML
+            const replaceSelectedText = (html: string) => {
+                const regex = new RegExp(`(${escapeRegExp(selectedText)})`, 'i');
+                const replaced = html.replace(regex, highlightedText);
+                console.log(`Replacing "${selectedText}" with "${highlightedText}"`);
+                console.log(`Before: "${html}"`);
+                console.log(`After replacement: "${replaced}"`);
+                return replaced;
+            };
+
+            // Определяем, в какой колонке находится выделение
+            const container = window.getSelection()?.anchorNode?.parentElement;
+            let column = 'left'; // По умолчанию левая колонка
+
+            if (container) {
+                if (container.closest('.left-column')) {
+                    column = 'left';
+                } else if (container.closest('.right-column')) {
+                    column = 'right';
+                }
+            }
+            console.log(`Determined column: ${column}`);
+
+            // Получаем текущий HTML страницы
+            const currentPageContent = pages[currentPage];
+            let updatedColumnHTML = '';
+
+            if (column === 'left') {
+                updatedColumnHTML = replaceSelectedText(currentPageContent.left);
+                console.log('Updated left column HTML:', updatedColumnHTML);
+            } else {
+                updatedColumnHTML = replaceSelectedText(currentPageContent.right);
+                console.log('Updated right column HTML:', updatedColumnHTML);
+            }
+
+            // Обновляем состояние
+            setPages((prevPages) => {
+                const newPages = [...prevPages];
+                if (column === 'left') {
+                    newPages[currentPage] = {
+                        ...newPages[currentPage],
+                        left: updatedColumnHTML,
+                    };
+                    console.log(`Updated left column of page ${currentPage}`);
+                } else {
+                    newPages[currentPage] = {
+                        ...newPages[currentPage],
+                        right: updatedColumnHTML,
+                    };
+                    console.log(`Updated right column of page ${currentPage}`);
+                }
+                return newPages;
+            });
+
+            // Очищаем выделение
+            window.getSelection()?.removeAllRanges();
+            console.log('Cleared text selection');
+            setSelection({ text: '', range: null, rect: null });
+        } else {
+            console.log('No selection range available.');
+        }
+    };
+
     if (pages.length === 0) {
         return <div className="text-center p-4">No text to display.</div>;
     }
 
     return (
-        <div className="mx-auto p-10">
+        <div className="mx-auto p-10 relative">
+            {/* Кнопка для выделения */}
+            {selection.text && (
+                <button
+                    ref={buttonRef}
+                    onClick={handleHighlight}
+                    style={getButtonStyle()}
+                    className="px-4 py-1 bg-red-400 rounded-md border-2 border-black"
+                >
+                    Выделить
+                </button>
+            )}
+
+            {/* Навигационные элементы */}
             <div className="flex justify-between items-center mb-4">
                 <Button onClick={goToPreviousPage} variant="outline">
                     <ChevronLeft className="mr-2 h-4 w-4" /> Previous
@@ -234,12 +280,14 @@ export default function PagedText({
                     Next <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
             </div>
+
+            {/* Содержимое страницы */}
             {pages.length > 0 && !isLoadingUseChapter && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
-                    {/* Left Column */}
-                    <div className="border px-4 rounded">{parse(pages[currentPage].left || '')}</div>
-                    {/* Right Column */}
-                    <div className="border px-4 rounded">{parse(pages[currentPage].right || '')}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-[100px] px-[80px] text-[20px] relative font-segoeUI text-justify leading-[1.4rem]  ">
+                    {/* Левая колонка */}
+                    <div className="left-column">{parse(pages[currentPage].left || '')}</div>
+                    {/* Правая колонка */}
+                    <div className=" right-column">{parse(pages[currentPage].right || '')}</div>
                 </div>
             )}
         </div>
