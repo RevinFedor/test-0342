@@ -126,6 +126,8 @@ const BookReader: React.FC = () => {
         return <div>Error loading book: {error?.message}</div>;
     }
 
+    console.log('content-----------------------');
+
     return (
         <div className="book-reader" style={{ position: 'relative' }}>
             {/* Внедрение CSS-стилей */}
@@ -139,21 +141,13 @@ const BookReader: React.FC = () => {
                 setIsScrollingInPopup={setIsScrollingInPopup} // Передаем управление скроллом
             />
 
-            <div className="page-navigation flex justify-center mb-2 relative">
-                <button onClick={handlePrevChapter} disabled={!currentChapter} className="nav-button absolute top-7 right-[50%]">
-                    <ArrowLeft />
-                </button>
-                {/* Отображение текущей главы */}
-                <div className="current-chapter-title text-[12px] font-bold" style={{ margin: '0 20px', textAlign: 'center' }}>
-                    {parentChapters.map((chapter, index) => (
-                        <span key={index}>
-                            {chapter.label} {index < parentChapters.length - 1 ? ' » ' : ''} {chapter.href}
-                        </span>
-                    ))}
-                </div>
-                <button onClick={handleNextChapter} disabled={!currentChapter} className="nav-button absolute top-7 left-[50%]">
-                    <ArrowRight />
-                </button>
+            {/* Отображение текущей главы */}
+            <div className="current-chapter-title text-[12px] font-bold" style={{ margin: '0 20px', textAlign: 'center' }}>
+                {parentChapters.map((chapter, index) => (
+                    <span key={index}>
+                        {chapter.label} {index < parentChapters.length - 1 ? ' » ' : ''}
+                    </span>
+                ))}
             </div>
 
             {/* Основное содержимое книги */}
